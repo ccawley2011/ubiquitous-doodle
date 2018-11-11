@@ -1,0 +1,88 @@
+; DumpDTT - Dump a currently loaded Desktop Tracker module to disk.
+; By Cameron Cawley
+;
+; Syntax: *DumpDTT <filename>
+;
+; This is meant to be used in combination with ARM_Debug, which is available from http://web.archive.org/web/20050403221816/http://home.wanadoo.nl/tvdb/
+
+#name <Tmp$Dir>.DumpDTT
+#type &FFC
+
+#set DeskTracker_SetMemory = &44b41
+#set DeskTracker_SetHimem = &44b4e
+
+.code
+   B      start
+   DCD    &79766748
+   DCD    &216C6776
+   DCD    end-code
+   DCD    0
+   DCD    &20
+.start
+   ADR    R0,args		; Get command line argument
+   MOV    R2,R12
+   MOV    R3,#1024
+   SWI    XOS_ReadArgs
+   BVS    noargs
+   LDR    R6,[R2]
+   MOV    R0,#18		; Check for the DesktopTracker module.
+   ADR    R1,modname
+   SWI    XOS_Module
+   BVS    nomodule
+   MOV    R0,#-1		; Get start address of song.
+   SWI    DeskTracker_SetMemory
+   STR    R0,addr
+   MOV    R0,#-1		; Get end address of song.
+   SWI    DeskTracker_SetHimem
+   STR    R0,himem
+   LDR    R0,addr		; Check if there's actually a DTT track loaded.
+   LDR    R1,dskt
+   LDR    R2,[R0,#0]
+   CMP    R1,R2
+   BNE    notdtt
+   MOV    R0,#10		; Save the tune in memory to a file.
+   MOV    R1,R6
+   MOV    R2,#&CB6
+   LDR    R4,addr
+   LDR    R5,himem
+   SWI    OS_File
+   MOV    PC,R14
+.noargs
+   ADR    R0,syntax
+   SWI    OS_Write0
+   SWI    OS_NewLine
+   MOV    PC,R14
+.nomodule
+   ADR    R0,nomodule_message
+   SWI    OS_Write0
+   SWI    OS_NewLine
+   MOV    PC,R14
+.notdtt
+   ADR    R0,notdtt_message
+   SWI    OS_Write0
+   SWI    OS_NewLine
+   MOV    PC,R14
+
+.addr
+   DCD    0
+.himem
+   DCD    0
+.dskt
+   DCB    "DskT",0
+   ALIGN
+.modname
+   DCB    "DesktopTracker",0
+   ALIGN
+.args
+   DCB    "/A",0
+   ALIGN
+.syntax
+   DCB    "Syntax: *DumpDTT <60>filename>",0
+   ALIGN
+.nomodule_message
+   DCB    "DumpDTT requires the Desktop Tracker module to be loaded.",0
+   ALIGN
+.notdtt_message
+   DCB    "No Desktop Tracker tune is currently loaded.",0
+   ALIGN
+.end
