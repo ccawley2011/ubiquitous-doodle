@@ -1,0 +1,17 @@
+REM Tell random jokes
+DIMspeak%1024
+SYS "OS_ReadVarVal","Jokes$Speak",speak%,1024,0 TO ,,A%
+speak%?A%=13
+PATH$="<Jokes$Dir>.Jokes."+STR$(INT(RND(17)))
+FILE = OPENIN PATH$
+REPEAT
+   A$=GET$#FILE
+   PRINT A$
+   IF $speak%="YES" THEN
+      SYS "Speak_Sayw",A$
+   ENDIF
+   IF NOT EOF#FILE THEN
+      B$=GET$
+   ENDIF
+UNTIL EOF#FILE
+CLOSE#FILE

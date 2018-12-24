@@ -1,0 +1,6 @@
+Set Jokes$Dir <Obey$Dir>
+Set Jokes$Speak YES
+RMEnsure Speak 0 IfThere <eSpeak$Dir>.speakmod Then RMLoad <eSpeak$Dir>.speakmod
+RMEnsure Speak 0 IfThere <Speak$Dir>.LoadSpeak Then Run <Speak$Dir>.LoadSpeak
+RMEnsure Speak 0 Set Jokes$Speak NO
+Run <Obey$Dir>.!RunImage
