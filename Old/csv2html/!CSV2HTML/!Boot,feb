@@ -1,0 +1,7 @@
+Set CSV2HTML$Dir <Obey$Dir>
+<Obey$Dir>.SmartIcon <Obey$Dir>.!Sprites <Obey$Dir>.!Sprites4 <Obey$Dir>.!Sprites5 
+Set Alias$CSV2HTML <CSV2HTML$Dir>.!Run %%*0
+Set File$Type_122 TSV
+Set File$Type_C7D SID
+Set File$Type_DFE CSV
+Set File$Type_FAF HTML

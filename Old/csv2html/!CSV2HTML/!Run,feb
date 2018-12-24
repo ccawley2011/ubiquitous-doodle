@@ -1,0 +1,10 @@
+Run <Obey$Dir>.!Boot
+If "%0"="" AND "<Wimp$State>"="desktop" THEN Filer_Run <CSV2HTML$Dir>.!Help
+If "%0"="" AND "<Wimp$State>"="commands" THEN Echo Syntax: *csv2html <60>CSV file<62> [<60>HTML file<62>]
+If "%0"="" THEN Obey
+Set CSV2HTML$File %0
+If "%1"<>"" THEN Set CSV2HTML$Output %1 ELSE Set CSV2HTML$Output HTMLOutput
+<Obey$Dir>.ProgThere brandy
+If "<ProgThere$There>"="Yes" Then Brandy -quit <CSV2HTML$Dir>.!RunImage Else Run <CSV2HTML$Dir>.!RunImage
+Unset CSV2HTML$File
+Unset CSV2HTML$Output

@@ -1,0 +1,44 @@
+SYS "OS_File",21,"Run:"+FNargs(1) TO FILE%
+IF FILE%=0 AND FNreadsysvar("Alias$"+FNargs(1))="" THEN
+   *Set ProgThere$There No
+ELSE
+   *Set ProgThere$There Yes
+ENDIF
+END
+
+DEF FNargs(number%)
+   SYS "OS_GetEnv" TO Env$
+   char%=0
+   space%=0
+   REPEAT
+     char%+=1
+     IF MID$(Env$,char%,1)=" " THEN
+       space%+=1
+     ENDIF
+   UNTIL space% = 3 OR char% = LEN(Env$)
+   A$=RIGHT$(Env$,LEN(Env$)-char%)
+   IF number%=0 THEN
+      FINAL$=A$
+   ELSE
+      char%=0
+      space%=0
+      start%=-1
+      REPEAT
+         char%+=1
+         IF space%=number%-1 AND start%=-1 THEN
+            start%=char%
+         ENDIF
+         IF MID$(A$,char%,1)=" " THEN
+            space%+=1
+         ENDIF
+      UNTIL space% = number% OR char% > LEN(A$)
+      FINAL$=MID$(A$,start%,char%-start%)
+   ENDIF
+=FINAL$
+
+
+DEF FNreadsysvar(variable$)
+   DIMvar%1024
+   SYS "XOS_ReadVarVal",variable$,var%,1024,0 TO ,,A%
+   var%?A%=13
+=$var%

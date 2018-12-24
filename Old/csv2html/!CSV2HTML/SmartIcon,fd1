@@ -1,0 +1,119 @@
+REM SmartIcon
+REM By Cameron Cawley
+ON ERROR PROCerror
+IF FNargs(3)="" THEN
+   PRINT "Syntax: SmartIcon <RO3 icons> <RO4 icons> <RO5 icons>"
+   END
+ENDIF
+IF LEFT$(FNargs(0),6)="- - - " OR FNargs(0)="- - -" THEN
+   PRINT "At least one icon set must be provided."
+   END
+ENDIF
+THEME$=FNreadsysvar("Wimp$IconTheme")
+RISCOS3$=""
+RISCOS4$=""
+RISCOS5$=""
+IF FNargs(1)<>"-" THEN
+   RISCOS3$=FNargs(1)
+ENDIF
+IF FNargs(2)<>"-" THEN
+   RISCOS4$=FNargs(2)
+ENDIF
+IF FNargs(3)<>"-" THEN
+   RISCOS5$=FNargs(3)
+ENDIF
+IF RISCOS3$="" THEN
+   IF RISCOS4$="" THEN
+      RISCOS3$=RISCOS5$
+   ELSE
+      RISCOS3$=RISCOS4$
+   ENDIF
+ENDIF
+IF RISCOS4$="" THEN
+   IF RISCOS3$="" THEN
+      RISCOS4$=RISCOS5$
+   ELSE
+      RISCOS4$=RISCOS3$
+   ENDIF
+ENDIF
+IF RISCOS5$="" THEN
+   RISCOS5$=RISCOS4$
+ENDIF
+*Set SmartIcon$OSVer 6
+*RMEnsure UtilityModule 6.00 Set SmartIcon$OSVer 5
+*RMEnsure UtilityModule 5.00 Set SmartIcon$OSVer 4
+*RMEnsure UtilityModule 3.80 Set SmartIcon$OSVer 3
+OSVER$=FNreadsysvar("SmartIcon$OSVer")
+IF OSVER$="3" THEN
+   OSCLI "IconSprites "+RISCOS3$
+ENDIF
+IF OSVER$="4" OR OSVER$="6" THEN
+   OSCLI "IconSprites "+RISCOS4$
+ENDIF
+IF OSVER$="5" THEN
+   IF FNlowercase(THEME$)="morris4." THEN
+      OSCLI "IconSprites "+RISCOS3$
+   ELSE
+      IF FNlowercase(THEME$)="ursula." THEN
+         OSCLI "IconSprites "+RISCOS4$
+      ELSE
+         OSCLI "IconSprites "+RISCOS5$
+      ENDIF
+   ENDIF
+ENDIF
+END
+
+DEF PROCerror
+   REPORT
+   PRINT " at line "+STR$(ERL)
+   END
+ENDPROC
+
+DEF FNargs(number%)
+   SYS "OS_GetEnv" TO Env$
+   char%=0
+   space%=0
+   REPEAT
+     char%+=1
+     IF MID$(Env$,char%,1)=" " THEN
+       space%+=1
+     ENDIF
+   UNTIL space% = 3 OR char% = LEN(Env$)
+   A$=RIGHT$(Env$,LEN(Env$)-char%)
+   IF number%=0 THEN
+      FINAL$=A$
+   ELSE
+      char%=0
+      space%=0
+      start%=-1
+      REPEAT
+         char%+=1
+         IF space%=number%-1 AND start%=-1 THEN
+            start%=char%
+         ENDIF
+         IF MID$(A$,char%,1)=" " THEN
+            space%+=1
+         ENDIF
+      UNTIL space% = number% OR char% > LEN(A$)
+      FINAL$=MID$(A$,start%,char%-start%)
+   ENDIF
+=FINAL$
+
+
+DEF FNreadsysvar(variable$)
+   DIMvar%1024
+   SYS "XOS_ReadVarVal",variable$,var%,1024,0 TO ,,A%
+   var%?A%=13
+=$var%
+
+DEF FNlowercase(string$)
+   ascii%=0
+   lowercase$=""
+   FOR A = 1 TO LEN(string$)
+      ascii%=ASC(MID$(string$,A,1))
+      IF ascii% > 64 AND ascii% < 91 THEN
+         ascii%=ascii%+32
+      ENDIF
+      lowercase$=lowercase$+CHR$(ascii%)
+   NEXT
+=lowercase$

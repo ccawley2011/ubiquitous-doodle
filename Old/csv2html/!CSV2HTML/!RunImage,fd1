@@ -1,0 +1,63 @@
+REM CSV2HTML
+REM By Cameron Cawley
+open%=0
+SYS "OS_File",21,"<CSV2HTML$File>" TO FILE%,,,,,,TYPE%
+IF FILE% = 0 THEN SYS "OS_File",19,FNreadsysvar("CSV2HTML$File"),0
+IF TYPE%=&122 THEN N$=CHR$(9) ELSE N$=","
+ON ERROR PROCerror
+FILE=OPENIN "<CSV2HTML$File>":open%=1
+HTML=OPENOUT "<CSV2HTML$Output>":open%=2
+BPUT#HTML, "<html><body>"
+BPUT#HTML, "<table border=""1"">"
+dqbefore%=0:swap%=0
+REPEAT
+  TEXT$=GET$#FILE
+  FINAL$=""
+  char%=1
+  doublequotes%=dqbefore%
+  REPEAT
+     IF MID$(TEXT$,char%,1) = N$ AND doublequotes% = 0 THEN
+        FINAL$=FINAL$+"</td><td>"
+     ELSE
+        IF MID$(TEXT$,char%,1) = CHR$(34) THEN
+           IF doublequotes% = 1 THEN
+              doublequotes% = 0
+           ELSE
+              doublequotes% = 1
+           ENDIF
+        ELSE
+           FINAL$=FINAL$+MID$(TEXT$,char%,1)
+        ENDIF
+     ENDIF
+     char%=char%+1
+  UNTIL char% >= LEN(TEXT$)+1
+  IF doublequotes% = 1 THEN
+     FINAL$=FINAL$+"<br>"
+  ELSE
+     FINAL$=FINAL$+"</td></tr>"
+  ENDIF
+  IF dqbefore% = 0 THEN FINAL$="<tr><td>"+FINAL$
+  IF swap%=0 THEN BPUT#HTML, FINAL$
+  IF doublequotes% = 1 THEN dqbefore%=1 ELSE dqbefore%=0
+  IF TYPE%=&C7D AND swap% = 0 THEN swap%=1 ELSE swap%=0
+UNTIL EOF#FILE
+BPUT#HTML, "</table>"
+BPUT#HTML, "</body></html>"
+CLOSE#HTML:open% = 1
+CLOSE#FILE:open% = 0
+OSCLI "SetType <CSV2HTML$Output> &FAF"
+END
+
+DEF PROCerror
+   ON ERROR OFF
+   IF open% = 2 THEN CLOSE#HTML
+   IF open% > 0 THEN CLOSE#FILE
+   PRINT REPORT$+" at line "+STR$(ERL)
+   END
+ENDPROC
+
+DEF FNreadsysvar(variable$)
+DIMvar%1024
+SYS "XOS_ReadVarVal",variable$,var%,1024,0 TO ,,A%
+var%?A%=13
+=$var%

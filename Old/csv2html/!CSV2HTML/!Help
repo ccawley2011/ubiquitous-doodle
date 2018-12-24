@@ -1,0 +1,22 @@
+CSV2HTML v0.6
+~~~~~~~~
+CSV2HTML will take a CSV file and convert it to an HTML file
+
+Syntax:
+
+*csv2html <CSV file> [<HTML file>]
+
+If no HTML file is specified, it will create a file called HTMLOutput in the current directory.
+An example CSV file is included in the archive
+
+v0.2 now supports cells with multiple lines and outputs in a more human readable format.
+
+v0.3 supports blank lines in CSV files
+
+v0.4 supports TSV files (CSV files separated with tabs instead of commas) and SID files (CSV files terminated using CR-LF)
+
+v0.5 will use the Brandy BASIC interpreter if it can find it. This will allow CSV2HTML to cope with huge files. Brandy is available from http://jaguar.orpheusweb.co.uk/branpage.html
+
+v0.6 makes several minor changes.
+
+By Cameron Cawley
