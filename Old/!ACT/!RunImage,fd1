@@ -1,0 +1,206 @@
+REM>!RunImage - for use with DrWimp Version 5.00 **
+LIBRARY "<ACT$Dir>.DrWimp"
+:
+appname$="ACT"
+ver$="0.2 (19-Apr-14)"
+
+ON ERROR PROCwimp_error(appname$,REPORT$+" at line "+STR$(ERL),1,"",0,0,"Quit "+appname$):PROCuser_error:PROCwimp_closedown:END
+task%=FNwimp_initialise(appname$,7000,360,0)
+PROCwimp_poll
+END
+:
+DEF PROCuser_error
+OSCLI("Unset ACT$Running")
+ENDPROC
+:
+DEF PROCuser_initialise
+OSCLI("Set ACT$Running Yes")
+REM** Load standard Info window and fill it with custom text. **
+info%=FNwimp_loadwindow("<ACT$Dir>.StdTmpl","stdinfo",0)
+PROCwimp_puticontext(info%,0,"ACT")
+PROCwimp_puticontext(info%,1,"Another Cache Tool")
+PROCwimp_puticontext(info%,2,"Cameron Cawley")
+PROCwimp_puticontext(info%,3,ver$)
+PROCwimp_puticontext(info%,4,"http://theoval.cmp.uea.ac.uk/~gcc/family/cameron/")
+PROCwimp_puticontext(info%,14,"5.00")
+REM**
+REM** Create iconbar icon, as defined. **
+iconbar%=FNwimp_iconbar("!"+appname$,"",1,1)
+REM**
+REM** Create custom iconbar menu, as defined. **
+messagefile$="<ACT$Dir>.CustomMenu"
+custommenumessages%=FNwimp_initmessages(messagefile$)
+iconbarmenu%=FNwimp_createmessagemenu(custommenumessages%,"Ibarmenu","",7)
+REM**
+REM** Attach info window to 'Info' item on iconbar menu. **
+PROCwimp_attachsubmenu(iconbarmenu%,1,info%)
+REM**
+ENDPROC
+:
+DEF FNuser_quit(type%)
+OSCLI("Unset ACT$Running")
+=1
+:
+DEF PROCuser_redraw(window%,minx%,miny%,maxx%,maxy%,printing%,page%)
+ENDPROC
+:
+DEF PROCuser_mouseclick(window%,icon%,button%,workx%,worky%)
+ENDPROC
+:
+DEF FNuser_menu(window%,icon%,screenx%,screeny%)
+return%=0
+REM** Designate iconbar menu. **
+CASE window% OF
+    WHEN iconbar%
+    return%=iconbarmenu%
+ENDCASE
+=return%
+:
+DEF PROCuser_openwindow(window%,x%,y%,stack%)
+ENDPROC
+:
+DEF PROCuser_closewindow(window%)
+ENDPROC
+:
+DEF FNuser_preclosewindow(window%)
+=1
+:
+DEF FNuser_keypress(window%,icon%,key%)
+=0
+:
+DEF PROCuser_menuselection(menu%,item%,font$)
+CASE menu% OF
+    WHEN iconbarmenu%
+    CASE item% OF
+        WHEN 2
+        REM** Run '!Help' when 'Help' item selected. **
+        PROCwimp_doubleclickobject("<ACT$Dir>.!Help",0)
+        REM**
+        WHEN 3
+        PROCwimp_starttask("Cache on")
+        WHEN 4
+        PROCwimp_starttask("Cache iw")
+        WHEN 5
+        PROCwimp_starttask("Cache w")
+        WHEN 6
+        PROCwimp_starttask("Cache off")
+        WHEN FNwimp_menusize(iconbarmenu%)
+        REM** Quit when last item of iconbar menu is selected. **
+        PROCwimp_quit(0)
+    ENDCASE
+ENDCASE
+ENDPROC
+:
+DEF FNuser_savefiletype(window%)
+=""
+:
+DEF PROCuser_saveicon(window%,RETURN drag%,RETURN write%,RETURN ok%)
+ENDPROC
+:
+DEF FNuser_savedata(path$,window%)
+LOCAL ERROR
+ON ERROR LOCAL =2
+=0
+:
+DEF FNuser_help(window%,icon%)
+HELPTEXT$=""
+IF window%=info% THEN
+   HELPTEXT$="This window displays information about ACT"
+ENDIF
+=HELPTEXT$
+:
+DEF FNuser_menuhelp(menu%,item%)
+HELPTEXT$=""
+IF menu%=iconbarmenu% THEN
+   IF item%=1 THEN
+      HELPTEXT$="\Rsee information about ACT"
+   ENDIF
+   IF item%=2 THEN
+      HELPTEXT$="\Sread the !Help file"
+   ENDIF
+   IF item%=3 THEN
+      HELPTEXT$="\Sturn all caches on"
+   ENDIF
+   IF item%=4 THEN
+      HELPTEXT$="\Sturn the data cache off and the information and write caches on"
+   ENDIF
+   IF item%=5 THEN
+      HELPTEXT$="\Sturn the data and information caches off and the write cache on"
+   ENDIF
+   IF item%=6 THEN
+      HELPTEXT$="\Sturn all caches off"
+   ENDIF
+   IF item%=7 THEN
+      HELPTEXT$="\Squit ACT"
+   ENDIF
+ENDIF
+=HELPTEXT$
+:
+DEF FNuser_loaddata(path$,window%,icon%,ftype$,workx%,worky%)
+=0
+:
+DEF PROCuser_enteringwindow(window%)
+ENDPROC
+:
+DEF PROCuser_leavingwindow(window%)
+ENDPROC
+:
+DEF FNuser_pane(window%)
+=-1
+:
+DEF PROCuser_null
+ENDPROC
+:
+DEF PROCuser_menuopen(menu%,window%,icon%)
+ENDPROC
+:
+DEF PROCuser_overmenuarrow(rootmenu%,rootmenuitem%,RETURN nextsubmenu%,nextsubmenunumber%,parentmenuitem%,x%,y%)
+ENDPROC
+:
+DEF FNuser_sliderback(window%,icon%)
+=-1
+:
+DEF FNuser_slider(window%,icon%)
+=-1
+:
+DEF PROCuser_slidervalue(window%,icon%,pcent%,dir%)
+ENDPROC
+:
+DEF PROCuser_modechange
+ENDPROC
+:
+DEF PROCuser_declarefonts
+ENDPROC
+:
+DEF PROCuser_print(minx%,miny%,maxx%,maxy%,page%)
+ENDPROC
+:
+DEF FNuser_printing(copy%,page%,totpages%,pagepos%)
+=0
+:
+DEF PROCuser_printerchange
+ENDPROC
+:
+DEF PROCuser_colourpickerrgb(red%,green%,blue%,none%)
+ENDPROC
+:
+DEF PROCuser_colourpickermodel(model%,value1,value2,value3,value4,none%)
+ENDPROC
+:
+DEF PROCuser_wimpmessage(messagenumber%,block%,reasoncode%)
+ENDPROC
+:
+DEF PROCuser_iconise(window%,RETURN text$,RETURN sprite$)
+ENDPROC
+:
+DEF FNuser_dragicon(window%,icon%,button%)
+=0
+:
+DEF PROCuser_seticondragbounds(startwindow%,dragicon%,dragbutton%,startmousex%,startmousey%,RETURN boundsminx%,RETURN boundsminy%,RETURN boundsmaxx%,RETURN boundsmaxy%)
+ENDPROC
+:
+DEF PROCuser_draggingicon(startwindow%,dragicon%,dragbutton%,startmousex%,startmousey%,mousex%,mousey%,overwindow%,overicon%,dragboxminx%,dragboxminy%,dragboxmaxx%,dragboxmaxy%)
+ENDPROC
+:
+DEF PROCuser_endicondrag(startwindow%,dragicon%,dragbutton%,startmousex%,startmousey%,dragboxminx%,dragboxminy%,dragboxmaxx%,dragboxmaxy%,endwindow%,endicon%,endmousex%,endmousey%)
+ENDPROC

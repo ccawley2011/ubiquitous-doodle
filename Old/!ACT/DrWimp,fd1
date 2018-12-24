@@ -1,0 +1,5120 @@
+REM>DrWimp
+REM © Andrew Ayre 1995-98
+REM Major updates and additions by Guy Bartle
+REM © Ray Favre - additions/changes 1999-2006
+REM Version 5.00 (29-Nov-08)
+REM
+REM *** CONDITIONS OF USE ***
+REM --------------------------------------------------------------------
+REM The Dr Wimp package is distributed on an ”As Is• basis, without
+REM warranty. No liability can be accepted for any consequential loss or
+REM damage, however caused, arising from the use of this package.
+REM
+REM The Dr Wimp package (apart from the 3rd party utilities as detailed in
+REM the !!ReadMe!! file) may only be distributed as a whole. For
+REM conditions of use of these 3rd party applications see their own !Help
+REM files.
+REM
+REM Distribution of the Dr Wimp package (and programs constructed using
+REM the DrWimp library) by third parties:
+REM
+REM Freeware. The DrWimp library may be distributed for free and without
+REM the documentation, examples, utilities, etc. if it is being used as
+REM part of a freeware product. (It would be nice if your documentation
+REM acknowledged Dr Wimp - and don't forget that my web-site has a page
+REM for links to your Dr Wimp applications, if you let me know .....)
+REM
+REM Shareware. Those using Dr Wimp to produce Shareware products must
+REM donate 10% of the received income from these products to a charity of
+REM their choice within 6 months of receiving the income. The Shareware
+REM user-documentation must state prominently that this charity donation
+REM is being made and also that Dr Wimp was used to produce the product.
+REM The application's name and author should be notified to the Dr Wimp
+REM copyright holder but no prior permission or further contact is needed.
+REM
+REM Commercial. If you wish to distribute the Dr Wimp package with a
+REM commercial product (or distribute commercially a program that uses Dr
+REM Wimp) then a specific licence is needed from the Dr Wimp copyright
+REM holder.
+REM
+REM Public Domain libraries may make a reasonable charge for materials,
+REM handling, etc. as long as this does not exceed £2.00 (UK) net for the
+REM Dr Wimp package.
+REM
+REM The DrWimp library may be reproduced in part if crunching and mangling
+REM utilities such as !BSquasher are used, otherwise it must be reproduced
+REM in whole, complete with its opening REMs containing the Conditions of
+REM Use and the copyright banner.
+REM
+REM If the DrWimp library is being reproduced in full then it may be added
+REM to the !RunImage (or similar) file, and does not have to be separate.
+REM
+REM The author retains copyright of Dr Wimp, documentation and examples at
+REM all times.
+REM REM --------------------------------------------------------------------
+REM You can download the latest version/upgrades from:
+REM Web site: http://www.rayfavre.me.uk/
+REM Or contact Ray Favre at:
+REM 26 West Drayton Park Avenue, West Drayton, Middlesex, UB7 7QA, UK
+REM email: drwimp@rayfavre.me.uk
+REM --------------------------------------------------------------------
+SYS "OS_CLI","Echo "
+SYS "OS_CLI","Echo "
+SYS "OS_CLI","Echo "+CHR$160+" You've just double-clicked on the Dr Wimp Library"
+SYS "OS_CLI","Echo "
+SYS "OS_CLI","Echo "
+SYS "OS_CLI","Echo "+STRING$(5,CHR$160)+" Version 5.00 (29-Nov-08) "+CHR$(169)+" Ray Favre"
+SYS "OS_CLI","Echo "
+SYS "OS_CLI","Echo "
+END
+:
+DEF FNwimp_libversion
+=(5.00)*100
+:
+DEF FNwimp_initialise(n$,wimpmem%,ver%,desktopsave%)
+LOCAL L%,N%
+DIM wMsgs% 3
+wMsgs%!0=0
+SYS "Wimp_Initialise",ver%,&4B534154,n$,wMsgs% TO wCurrWimpversion%,wTask%
+wappname$=n$
+werrtitle$=wappname$+" library"
+IF wimpmem%<320 THEN wimpmem%=320
+wCurrOSversion%=FNwimp_osversion
+wMaxMessagefiles%=16
+DIM wMessagehandles%(wMaxMessagefiles%,2)
+FOR N%=1 TO wMaxMessagefiles%
+  wMessagehandles%(N%,0)=-1
+NEXT
+wMessagefilecount%=0
+wMessageout%=-1
+wTemplatefile$=""
+DIM wFontbuf% 255
+DIM wFontbuftemp% 255
+FOR L%=0 TO 255
+  wFontbuf%?L%=0
+NEXT L%
+DIM wTransformtext% 23
+DIM wBBox% 35
+DIM wMouseblk% 9
+DIM wTempblk% 319
+DIM wTempblk2% 319
+DIM wScale% 15
+DIM wSprcoltrans% 299
+DIM wDmatrix% 23
+DIM wDbbox% 15
+DIM wimp% (wimpmem%-1)
+DIM wPrintblock% 39
+IF wCurrOSversion%<ver% THEN PROCwimp_error("WIMP","You need RISC OS "+STR$(ver%/100)+" or better to run this application.",1,"",0,0,"Quit"):SYS "Wimp_CloseDown":END
+wBARTEXT%=FALSE
+wBANNER%=FALSE
+NULL%=FALSE
+wFinished%=FALSE
+wQuitsender%=-1
+wPrinting%=FALSE
+UNUSED%=FALSE
+wICONISE%=FALSE
+wSavedrag%=-1
+wSavew%=-1
+wSavet$=""
+wSlidedrag%=-1
+wSlidew%=-1
+wSlidei%=-1
+wIcondrag%=-1
+wIconw%=-1
+wIconi%=-1
+wStartx%=0
+wStarty%=0
+wDragbutton%=0
+wOx%=0
+wOy%=0
+wLen%=0
+wLen2%=0
+wSwid%=0
+wShei%=0
+wToPrinter%=0
+wPrintFile$=""
+wPrintFileType%=0
+wDeleteFile%=0
+wMaxdynamicareas%=16
+DIM wDynamicarea%(wMaxdynamicareas%+1,1)
+wDynamics%=0
+wShutdown%=0
+wMenuicon%=0
+wHoldwhan%=0
+wDesktopsave$=FNwimp_getsysvariable("Obey$Dir")
+IF desktopsave%=0 THEN wDesktopsave%=FALSE ELSE wDesktopsave%=TRUE
+wSubmenu%=1
+wColourblock%=-1
+wPickerhandle%=0
+wPickerwindow%=0
+wSUBMENUCOLOURPICKER%=4
+wColourdrag%=FALSE
+wDirbuffer%=-1
+wFONTMENU%=-1
+wHeldmenu%=0
+wFontmenubuflen%=255
+wFontmenudepth%=0
+wMaxdepth%=5
+DIM wMenutree%(wMaxdepth%)
+FOR N%=0 TO wMaxdepth%
+  wMenutree%(N%)=-1
+NEXT
+wConvert%=0
+wDimsize%=36
+wDateblk%=0
+wStartupoption$=""
+SYS "OS_GetEnv" TO wEnvstr$
+wStartupfile$=FNwint_extractfiletoloadandstartupoptions(wEnvstr$)
+PROCuser_initialise
+IF wTemplatefile$<>"" THEN SYS "Wimp_CloseTemplate"
+wTemplatefile$=""
+PROCwint_checkforload(wStartupfile$)
+=wTask%
+:
+DEF PROCwimp_error(title$,error$,from%,spritename$,spritearea%,button%,altbutton$)
+LOCAL pre$,comma%,type%,flags%
+IF from%>2 OR from%<0 THEN from%=0
+pre$=""
+IF from%=1 THEN pre$="Error from "
+IF from%=2 THEN pre$="Message from "
+IF title$="" THEN title$=wappname$
+IF button%>2 OR button%<1 THEN button%=0
+IF button%=0 THEN continue%=0:cancel%=0
+IF button%=1 THEN continue%=1:cancel%=0
+IF button%=2 THEN continue%=0:cancel%=1
+IF altbutton$<>"" THEN
+  comma%=INSTR(altbutton$,",")
+  IF comma%>0 THEN
+    altbutton$=LEFT$(altbutton$,comma%-1)
+  ENDIF
+ENDIF
+IF altbutton$<>"" THEN continue%=0:cancel%=0
+type%=2
+flags%=continue%+(cancel%<<1)+(0<<2)+(0<<3)+(1<<4)+(1<<8)+(type%<<9)
+wimp%!0=0
+$(wimp%+4)=error$
+IF altbutton$="" THEN
+  SYS "Wimp_ReportError",wimp%,flags%,pre$+title$,spritename$,spritearea%,0
+ELSE
+  SYS "Wimp_ReportError",wimp%,flags%,pre$+title$,spritename$,spritearea%,altbutton$
+ENDIF
+ENDPROC
+:
+DEF FNwimp_errorchoice(title$,error$,from%,type%,spritename$,spritearea%,continue%,cancel%,extrabutton$)
+LOCAL return%,pre$,flags%
+return%=0
+IF from%>2 OR from%<0 THEN from%=0
+pre$=""
+IF from%=1 THEN pre$="Error from "
+IF from%=2 THEN pre$="Message from "
+IF title$="" THEN title$=wappname$
+IF type%>4 OR type%<1 THEN type%=2
+IF continue%<>0 THEN continue%=1
+IF cancel%<>0 THEN cancel%=1
+flags%=continue%+(cancel%<<1)+(0<<2)+(0<<3)+(1<<4)+(1<<8)+(type%<<9)
+wimp%!0=0
+$(wimp%+4)=error$
+IF extrabutton$="" THEN
+  SYS "Wimp_ReportError",wimp%,flags%,pre$+title$,spritename$,spritearea%,0 TO ,return%
+ELSE
+  SYS "Wimp_ReportError",wimp%,flags%,pre$+title$,spritename$,spritearea%,extrabutton$ TO ,return%
+ENDIF
+=return%
+:
+DEF PROCwimp_poll
+LOCAL reason%,mask%
+wFinished%=FALSE
+REPEAT
+  IF NULL%=FALSE AND wSlidedrag%=-1 AND wIcondrag%=-1 AND wBANNER%=FALSE THEN
+    mask%=1
+  ELSE
+    mask%=0
+  ENDIF
+  SYS "Wimp_Poll",mask%,wimp% TO reason%,wimp%
+  PROCwint_reasoncodes(reason%)
+UNTIL wFinished%=TRUE
+PROCwimp_closedown
+ENDPROC
+:
+DEF PROCwint_reasoncodes(reason%)
+CASE reason% OF
+  WHEN 0 : PROCwint_pollnull
+  WHEN 1 : PROCwint_pollredrawwindow(wimp%!0)
+  WHEN 2 : PROCwint_pollopenwindow(wimp%!0)
+  WHEN 3 : PROCwint_pollclosewindow(wimp%!0)
+  WHEN 4 : PROCuser_leavingwindow(wimp%!0)
+  WHEN 5 : PROCuser_enteringwindow(wimp%!0)
+  WHEN 6 : PROCwint_pollmouseclick(wimp%!12,wimp%!16,wimp%!8,wimp%!0,wimp%!4)
+  WHEN 7 : PROCwint_pollendofdrag(wimp%!0,wimp%!4,wimp%!8,wimp%!12)
+  WHEN 8 : PROCwint_pollkeypress(wimp%!0,wimp%!4,wimp%!24)
+  WHEN 9 : PROCwint_pollmenuselection
+  WHEN 10
+  WHEN 11
+  WHEN 12
+  WHEN 13
+  WHEN 14
+  WHEN 15
+  WHEN 16
+  WHEN 17,18 : PROCwint_pollmessage(wimp%!16,reason%)
+  WHEN 19 : IF UNUSED%=TRUE THEN PROCuser_wimpmessage(wimp%!16,wimp%,reason%)
+ENDCASE
+ENDPROC
+:
+DEF PROCwint_pollnull
+LOCAL time%
+IF NULL%=TRUE THEN PROCuser_null
+IF wSlidedrag%<>-1 PROCwint_draggingslider
+IF wIcondrag%<>-1 PROCwint_draggingicon
+IF wBANNER%=TRUE THEN
+  SYS "OS_ReadMonotonicTime" TO time%
+  IF time%>wDelaymax% THEN
+    PROCwimp_closewindow(wBanner%)
+    wBANNER%=FALSE
+  ENDIF
+ENDIF
+ENDPROC
+:
+DEF PROCwint_pollredrawwindow(whan%)
+LOCAL flag%
+IF whan%<>wPickerwindow% THEN
+  SYS "Wimp_RedrawWindow",,wimp% TO flag%
+  WHILE flag%
+    PROCwint_savewimp
+    PROCuser_redraw(wimp%!0,wimp%!28,wimp%!32,wimp%!36,wimp%!40,FALSE,0)
+    PROCwint_loadwimp
+    SYS "Wimp_GetRectangle",,wimp% TO flag%
+  ENDWHILE
+ENDIF
+ENDPROC
+:
+DEF PROCwint_pollopenwindow(whan%)
+IF whan%<>wPickerwindow% THEN
+  IF wICONISE%=FALSE THEN
+    IF FNuser_pane(whan%)=-1 THEN
+      SYS "Wimp_OpenWindow",,wimp%
+    ELSE
+      PROCwint_windowhaspane
+    ENDIF
+    PROCwint_checkuserpane(whan%,wimp%)
+    PROCwint_checksavewindow(whan%)
+  ENDIF
+  wICONISE%=FALSE
+ENDIF
+ENDPROC
+:
+DEF PROCwint_windowhaspane
+LOCAL cstack%
+IF wimp%!28<>-1 THEN
+  SYS "Wimp_OpenWindow",,wimp%
+ELSE
+  wimp%!128=wimp%!0
+  SYS "Wimp_GetWindowState",,wimp%+128
+  cstack%=wimp%!(128+28)
+  wimp%!28=cstack%
+  SYS "Wimp_OpenWindow",,wimp%
+  wimp%!28=-1
+ENDIF
+ENDPROC
+:
+DEF PROCwint_pollclosewindow(whan%)
+PROCwint_savewimp
+IF FNuser_preclosewindow(whan%)=1 THEN
+  PROCwint_loadwimp
+  SYS "Wimp_CloseWindow",,wimp%
+  PROCuser_closewindow(whan%)
+ENDIF
+ENDPROC
+:
+DEF PROCwint_pollmouseclick(whan%,icon%,button%,mousex%,mousey%)
+LOCAL done%,s%,drag%,write%,ok%,x%,y%
+wColourdrag%=FALSE
+IF whan%=wPickerwindow% THEN
+  wColourdrag%=TRUE
+ELSE
+  done%=0
+  IF (button%=64 OR button%=16) AND (icon%>-1) THEN
+    PROCwint_startdrag(whan%,icon%,button%,mousex%,mousey%)
+    done%=1
+  ENDIF
+  IF done%<>1 THEN
+    IF FNuser_sliderback(whan%,icon%)<>-1 THEN
+      PROCwint_clickedslider(whan%,icon%,mousex%,mousey%)
+      done%=1
+    ENDIF
+  ENDIF
+  IF done%<>1 THEN
+    s%=FNuser_slider(whan%,icon%)
+    IF s%<>-1 THEN
+      PROCwint_clickedslider(whan%,s%,mousex%,mousey%)
+      done%=1
+    ENDIF
+  ENDIF
+  IF done%<>1 THEN
+    IF button%<>2 AND FNuser_savefiletype(whan%)<>"" THEN
+      drag%=0:write%=1:ok%=2
+      PROCuser_saveicon(whan%,drag%,write%,ok%)
+      IF icon%=ok% THEN
+        PROCwint_quicksave(whan%,write%)
+        done%=1
+      ENDIF
+    ENDIF
+  ENDIF
+  IF done%<>1 THEN
+    IF button%<>2 THEN
+      x%=FNwimp_screentowork(whan%,mousex%,0)
+      y%=FNwimp_screentowork(whan%,mousey%,1)
+      PROCuser_mouseclick(whan%,icon%,button%,x%,y%)
+    ELSE
+      PROCwint_menuclick(whan%,icon%,mousex%,mousey%)
+    ENDIF
+  ENDIF
+ENDIF
+ENDPROC
+:
+DEF PROCwint_menuclick(whan%,icon%,mousex%,mousey%)
+LOCAL menu%,yalt%
+wHoldwhan%=0
+menu%=FNuser_menu(whan%,icon%,mousex%,mousey%)
+IF menu%<>0 THEN
+  wHoldwhan%=whan%
+  IF (menu% AND 1)=0 THEN
+    IF !(menu%-4)=-1 THEN wFONTMENU%=menu%
+  ENDIF
+  wMenuicon%=icon%
+  CASE whan% OF
+    WHEN -2
+    yalt%=FNwint_iconbardottedlinemenusize(menu%)
+    PROCuser_menuopen(menu%,wHoldwhan%,wMenuicon%)
+    SYS "Wimp_CreateMenu",,menu%,mousex%-64,yalt%
+    OTHERWISE
+    PROCuser_menuopen(menu%,wHoldwhan%,wMenuicon%)
+    SYS "Wimp_CreateMenu",,menu%,mousex%-64,mousey%
+  ENDCASE
+  PROCwint_checksavewindow(menu%)
+  wLastmenu%=menu%
+ENDIF
+ENDPROC
+:
+DEF FNwint_iconbardottedlinemenusize(menu%)
+LOCAL menusize%,menuposy%,item%,startbyte%,dottedline%
+menusize%=FNwimp_menusize(menu%)
+menuposy%=(menusize%*44)+96
+FOR item%=1 TO menusize%
+  startbyte%=menu%+28+(24*(item%-1))
+  dottedline%=((?startbyte%>>1) AND 1)
+  IF dottedline%=1 THEN
+    menuposy%+=24
+  ENDIF
+NEXT
+=menuposy%
+:
+DEF PROCwint_pollendofdrag(dragboxminx%,dragboxminy%,dragboxmaxx%,dragboxmaxy%)
+IF wColourdrag%=TRUE THEN
+  wColourdrag%=FALSE
+ELSE
+  IF wSavedrag%=-1 THEN
+    IF wSlidedrag%<>-1 THEN
+      PROCwint_endsliderdrag
+    ELSE
+      PROCwint_endicondrag(dragboxminx%,dragboxminy%,dragboxmaxx%,dragboxmaxy%)
+    ENDIF
+  ELSE
+    PROCwint_endsavedrag
+  ENDIF
+ENDIF
+ENDPROC
+:
+DEF PROCwint_pollkeypress(whan%,icon%,key%)
+LOCAL done%,drag%,write%,ok%
+IF whan%<>wPickerwindow% THEN
+  done%=0
+  IF FNuser_savefiletype(whan%)<>"" AND key%=13 THEN
+    drag%=0:write%=1:ok%=2
+    PROCuser_saveicon(whan%,drag%,write%,ok%)
+    IF icon%=write% THEN
+      PROCwint_quicksave(whan%,write%)
+      done%=1
+    ENDIF
+  ENDIF
+  IF done%<>1 THEN
+    PROCwint_savewimp
+    done%=FNuser_keypress(whan%,icon%,key%)
+    PROCwint_loadwimp
+    IF done%=0 THEN SYS "Wimp_ProcessKey",key%
+  ENDIF
+ENDIF
+ENDPROC
+:
+DEF PROCwint_pollmenuselection
+LOCAL font$,fontname%,FontDecode%,A%,N%,Slash%,selection%,menu%,item%
+IF wLastmenu%<>wHeldmenu% AND wHeldmenu%<>0 THEN
+  FOR N%=0 TO wMaxdepth%
+    wMenutree%(N%)=-1
+  NEXT
+ENDIF
+font$=""
+FontDecode%=FALSE
+CASE TRUE OF
+  WHEN (wLastmenu%=wFONTMENU%)
+  wFontmenudepth%=0
+  FontDecode%=TRUE
+  WHEN (wFontmenudepth%>0)
+  FontDecode%=TRUE
+  IF wReopened%=TRUE THEN
+    FontDecode%=FNwint_fontmenutree
+  ELSE
+    FontDecode%=FNwint_fontmenuused
+  ENDIF
+  IF FontDecode%=TRUE THEN
+    FOR N%=1 TO wFontmenudepth%
+      wMenutree%(N%) = !(wimp%+4*(N%-1))
+    NEXT
+  ENDIF
+ENDCASE
+menu%=0:item%=0
+IF FontDecode%=TRUE THEN
+  DIM fontname% wFontmenubuflen%-1
+  IF font$<>"" THEN
+    FOR A%=0 TO wFontmenubuflen%-1
+      fontname%?A%=0
+    NEXT
+  ENDIF
+  selection%=wimp%+(4*wFontmenudepth%)
+  SYS "Font_DecodeMenu",0,wFONTMENU%,selection%,fontname%,wFontmenubuflen%
+  font$=FNwint_string(fontname%)
+  font$=RIGHT$(font$,LEN(font$)-2)
+  Slash%=INSTR(font$,"\")
+  IF Slash%>0 THEN font$=LEFT$(font$,Slash%-1)
+  menu%=wFONTMENU%
+ELSE
+  PROCwint_getmenuanditem(wLastmenu%,menu%,item%)
+  font$=""
+ENDIF
+PROCuser_menuselection(menu%,item%,font$)
+SYS "Wimp_GetPointerInfo",,wimp%
+IF wimp%!8=1 THEN
+  PROCwint_savewimp
+  PROCuser_menuopen(wLastmenu%,wHoldwhan%,wMenuicon%)
+  PROCwint_loadwimp
+  SYS "Wimp_CreateMenu",,wLastmenu%,wimp%!0-64,wimp%!4+20
+  wReopened%=TRUE
+  wHeldmenu%=wLastmenu%
+ELSE
+  wFontmenudepth%=0
+  wHeldmenu%=0
+  FOR N%=0 TO wMaxdepth%
+    wMenutree%(N%)=-1
+  NEXT
+ENDIF
+ENDPROC
+:
+DEF PROCwint_pollmessage(actioncode%,reasoncode%)
+CASE actioncode% OF
+  WHEN 0      : wFinished%=TRUE
+  WHEN 1      : PROCwint_receivedmess1(wimp%!4,wimp%!8,wimp%!20,wimp%!24,wimp%!28,wimp%!32,wimp%!36,wimp%!40)
+  WHEN 2      : PROCwint_receivedmess2(wimp%!4,wimp%!8,wimp%!20,wimp%!24,wimp%!28,wimp%!32,wimp%+44)
+  WHEN 3,5    : PROCwint_receivedmess3or5(actioncode%,wimp%!4,wimp%!8,wimp%!20,wimp%!24,wimp%!28,wimp%!32,wimp%!36,wimp%!40,wimp%+44)
+  WHEN 4      : PROCwint_receivedmess4
+  WHEN 8      : PROCwint_prequitissued
+  WHEN 10     : PROCwint_desktopsave
+  WHEN &502   : PROCwint_help(wimp%!4,wimp%!8,wimp%!32,wimp%!36,wimp%!20,wimp%!24,wimp%!28)
+  WHEN &400C0 : PROCwint_opensubmenu(wimp%!20,wimp%!24,wimp%!28,wimp%!32)
+  WHEN &400C1 : PROCuser_modechange
+  WHEN &400CC : PROCwint_iconise(wimp%!4,wimp%!8,wimp%!20)
+  WHEN &47700 : PROCwint_colourpickerchoice(wimp%!36)
+  WHEN &47702 : PROCwint_closecolourpicker(wimp%!20)
+  WHEN &80147 : PROCuser_printerchange
+  OTHERWISE
+  IF UNUSED%=TRUE THEN PROCuser_wimpmessage(actioncode%,wimp%,reasoncode%)
+ENDCASE
+ENDPROC
+:
+DEF PROCwimp_pollidle(durationreal,sec%)
+LOCAL centisecs%,reason%,oldtime%,newtime%
+IF sec%=0 THEN centisecs%=ABS(durationreal) ELSE centisecs%=ABS(durationreal*100)
+wFinished%=FALSE
+SYS "OS_ReadMonotonicTime" TO oldtime%
+REPEAT
+  SYS "Wimp_PollIdle",0,wimp%,oldtime% TO reason%,wimp%
+  PROCwint_reasoncodes(reason%)
+  SYS "OS_ReadMonotonicTime" TO newtime%
+  WHILE (newtime%-oldtime%)>=0
+    oldtime%=oldtime%+centisecs%
+  ENDWHILE
+UNTIL wFinished%=TRUE
+PROCwimp_closedown
+ENDPROC
+:
+DEF PROCwimp_singlepoll
+LOCAL reason%
+SYS "Wimp_Poll",0,wimp% TO reason%,wimp%
+PROCwint_reasoncodes(reason%)
+IF wFinished%=TRUE THEN
+  PROCwimp_closedown
+ENDIF
+ENDPROC
+:
+DEF PROCwimp_singlepollidle(durationreal,sec%)
+LOCAL centisecs%,reason%,starttime%,currtime%
+IF sec%=0 THEN centisecs%=ABS(durationreal) ELSE centisecs%=ABS(durationreal*100)
+SYS "OS_ReadMonotonicTime" TO starttime%
+REPEAT
+  SYS "Wimp_PollIdle",0,wimp%,starttime%+centisecs% TO reason%,wimp%
+  PROCwint_reasoncodes(reason%)
+  IF wFinished%=TRUE THEN
+    PROCwimp_closedown
+  ENDIF
+  SYS "OS_ReadMonotonicTime" TO currtime%
+UNTIL currtime%>=starttime%+centisecs%
+ENDPROC
+:
+DEF PROCwimp_quit(type%)
+IF type%=1 THEN
+  IF wQuitsender%=-1 THEN
+    PROCwimp_error(werrtitle$,"Sorry, but 'PROCwimp_quit(type%)' has been called with 'type%' set to 1 in the wrong circumstances. Please refer to the Dr Wimp Manual.",1,"",0,1,"")
+  ELSE
+    PROCwint_savewimp
+    SYS "Wimp_GetCaretPosition",,wimp%
+    wimp%!24=&1FC
+    SYS "Wimp_SendMessage",8,wimp%,wQuitsender%
+    PROCwint_loadwimp
+    wQuitsender%=-1
+  ENDIF
+ELSE
+  IF FNuser_quit(0)=1 THEN
+    wFinished%=TRUE
+  ENDIF
+ENDIF
+ENDPROC
+:
+DEF PROCwint_prequitissued
+LOCAL justthistask%,type%
+PROCwint_savewimp
+justthistask%=(wimp%!20 AND 1)
+type%=1-justthistask%
+IF FNuser_quit(type%)=0 THEN
+  PROCwint_loadwimp
+  wQuitsender%=wimp%!4
+  wimp%!12=wimp%!8
+  SYS "Wimp_SendMessage",19,wimp%
+ENDIF
+ENDPROC
+:
+DEF PROCwimp_closedown
+LOCAL L%
+FOR L%=0 TO 255
+  IF wFontbuf%?L% THEN SYS "Font_LoseFont",L%
+NEXT L%
+PROCwint_cleardynamicareas
+PROCwint_closemessagefiles
+IF wTemplatefile$<>"" THEN SYS "Wimp_CloseTemplate"
+PROCwimp_hourglassoff
+SYS "Wimp_CloseDown"
+ENDPROC
+:
+DEF FNwimp_loadwindow(file$,win$,sprflag%)
+LOCAL name%,whan%,icons%,L%,ic%,ind%,spr%,txt%,icondata%,iconsize%,namecheck%
+DIM name% 11
+FOR L%=0 TO 255
+  wFontbuftemp%?L%=0
+NEXT L%
+IF file$<>wTemplatefile$ THEN
+  IF wTemplatefile$<>"" THEN
+    SYS "Wimp_CloseTemplate"
+  ENDIF
+  SYS "Wimp_OpenTemplate",,file$
+  wTemplatefile$=file$
+ENDIF
+whan%=0
+$name%=win$
+SYS "Wimp_LoadTemplate",,0,0,0,wFontbuf%,name%,0 TO ,,iconsize%,,,,namecheck%
+IF namecheck%>0 THEN
+  DIM icondata% iconsize%-1
+  SYS "Wimp_LoadTemplate",,wimp%,icondata%,icondata%+iconsize%,wFontbuftemp%,name%,0 TO ,,icondata%
+  FOR L%=0 TO 255
+    IF wFontbuftemp%?L% THEN wFontbuf%?L%+=1
+  NEXT L%
+  IF sprflag%=0 THEN
+    wimp%!64=1
+  ELSE
+    wimp%!64=sprflag%
+    icons%=wimp%!84
+    IF icons%>0 THEN
+      FOR L%=1 TO icons%
+        ic%=wimp%+((L%-1)*32)+88
+        ind%=((ic%!16)>>8) AND 1
+        spr%=((ic%!16)>>1) AND 1
+        txt%=(ic%!16) AND 1
+        IF ind%=1 AND spr%=1 AND txt%=0 THEN
+          IF (ic%!28)<>0 ic%!24=sprflag%
+        ENDIF
+      NEXT L%
+    ENDIF
+  ENDIF
+  SYS "Wimp_CreateWindow",,wimp% TO whan%
+ENDIF
+=whan%
+:
+DEF PROCwimp_openwindow(whan%,centre%,stack%)
+IF centre%<0 OR centre%>2 THEN centre%=0
+wimp%!0=whan%
+SYS "Wimp_GetWindowState",,wimp%
+IF stack%=-3 THEN stack%=wimp%!28
+IF stack%=-4 THEN stack%=-3
+IF centre%=1 THEN PROCwint_centrewindow
+IF centre%=2 THEN PROCwint_pointercentrewindow(whan%)
+wimp%!28=stack%
+SYS "Wimp_OpenWindow",,wimp%
+PROCwint_checkuserpane(whan%,wimp%)
+PROCwint_checksavewindow(whan%)
+ENDPROC
+:
+DEF PROCwimp_openwindowat(whan%,x%,y%,stack%)
+LOCAL width%,height%
+wimp%!0=whan%
+SYS "Wimp_GetWindowState",,wimp%
+IF stack%=-3 THEN stack%=wimp%!28
+IF stack%=-4 THEN stack%=-3
+width%=wimp%!12-wimp%!4
+height%=wimp%!16-wimp%!8
+wimp%!4=x%
+wimp%!8=y%-height%
+wimp%!12=x%+width%
+wimp%!16=y%
+wimp%!28=stack%
+SYS "Wimp_OpenWindow",,wimp%
+PROCwint_checkuserpane(whan%,wimp%)
+PROCwint_checksavewindow(whan%)
+ENDPROC
+:
+DEF PROCwimp_redrawwindow(whan%)
+SYS "Wimp_ForceRedraw",whan%,-1E6,-1E6,1E6,1E6
+ENDPROC
+:
+DEF PROCwimp_updatewindow(whan%,minx%,miny%,maxx%,maxy%)
+SYS "Wimp_ForceRedraw",whan%,minx%,miny%,maxx%,maxy%
+ENDPROC
+:
+DEF FNwimp_iswindowopen(whan%)
+wimp%!0=whan%
+SYS "Wimp_GetWindowState",,wimp%
+=(((wimp%!32>>16) AND 1)=1)
+:
+DEF PROCwimp_closewindow(whan%)
+IF FNuser_preclosewindow(whan%)=1 THEN
+  wimp%!0=whan%
+  SYS "Wimp_CloseWindow",,wimp%
+  PROCuser_closewindow(whan%)
+ENDIF
+ENDPROC
+:
+DEF FNwimp_getwindowvisiblesize(whan%,side%)
+LOCAL return%
+return%=0
+IF side%<>0 THEN side%=1
+wimp%!0=whan%
+SYS "Wimp_GetWindowState",,wimp%
+return%=wimp%!(side%*4+12)-wimp%!(side%*4+4)
+=return%
+:
+DEF FNwimp_getwindowworksize(whan%,side%)
+LOCAL return%
+IF side%<>0 THEN side%=1
+wimp%!0=whan%
+SYS "Wimp_GetWindowInfo",,(wimp% OR %1)
+return%=wimp%!(side%*4+52)-wimp%!(side%*4+44)
+=return%
+:
+DEF FNwimp_getwindowvisiblework(whan%,side%,end%)
+LOCAL result%
+IF end%<>0 THEN end%=1
+IF side%<>0 THEN side%=1
+wimp%!0=whan%
+SYS "Wimp_GetWindowState",,wimp%
+result%=FNwimp_screentowork(whan%,wimp%!(end%*8+side%*4+4),side%)
+=result%
+:
+DEF FNwimp_getwindowvisiblescreen(whan%,side%,end%)
+LOCAL result%
+IF end%<>0 THEN end%=1
+IF side%<>0 THEN side%=1
+wimp%!0=whan%
+SYS "Wimp_GetWindowState",,wimp%
+result%=wimp%!(end%*8+side%*4+4)
+=result%
+:
+DEF PROCwimp_resizewindow(whan%,width%,height%)
+LOCAL flags%,op%
+wimp%!0=0:wimp%!4=-height%:wimp%!8=width%:wimp%!12=0
+SYS "Wimp_SetExtent",whan%,wimp%
+wimp%!0=whan%
+SYS "Wimp_GetWindowState",,wimp%
+flags%=wimp%!32
+op%=(flags%>>16) AND 1
+IF op%=0 THEN wimp%!28=-3
+SYS "Wimp_OpenWindow",,wimp%
+IF op%=0 THEN
+  wimp%!0=whan%
+  SYS "Wimp_CloseWindow",,wimp%
+ENDIF
+ENDPROC
+:
+DEF PROCwimp_resizewindowvisible(whan%,width%,height%)
+LOCAL flags%,open%
+wimp%!0=whan%
+SYS "Wimp_GetWindowInfo",,wimp% OR 1
+SYS "Wimp_SetExtent",whan%,wimp%+44
+wimp%!0=whan%
+SYS "Wimp_GetWindowState",,wimp%
+wimp%!8=wimp%!16-height%
+wimp%!12=wimp%!4+width%
+flags%=wimp%!32
+open%=(flags%>>16) AND 1
+IF open%=0 THEN wimp%!28=-3
+SYS "Wimp_OpenWindow",,wimp%
+IF open%=0 THEN
+  wimp%!0=whan%
+  SYS "Wimp_CloseWindow",,wimp%
+ELSE
+  PROCwint_checkuserpane(whan%,wimp%)
+ENDIF
+ENDPROC
+:
+DEF FNwimp_getwindowtitle(whan%)
+LOCAL return$,titlebar%,titletext%,indirected%
+return$=""
+wimp%!0=whan%
+SYS "Wimp_GetWindowInfo",,(wimp% OR %1)
+titlebar%=((wimp%!32>>26) AND 1)
+IF titlebar%=1 THEN
+  titletext%=(wimp%!60 AND 1)
+  IF titletext%=1 THEN
+    indirected%=((wimp%!60>>8) AND 1)
+    IF indirected%=1 THEN
+      return$=FNwint_string(wimp%!76)
+    ELSE
+      return$=FNwint_string(wimp%+76)
+    ENDIF
+  ENDIF
+ENDIF
+=return$
+:
+DEF PROCwimp_putwindowtitle(whan%,text$)
+LOCAL flag%,width%,height%,xmin%,ymin%
+wimp%!0=whan%
+SYS "Wimp_GetWindowInfo",,(wimp% OR %1)
+flag%=wimp%!60
+flag%=(flag%>>8)
+IF (flag% AND 1)=0 THEN
+  PROCwimp_error(werrtitle$,"Window title is not indirected",1,"",0,1,"")
+ELSE
+  $(wimp%!76)=text$
+  PROCwint_redrawtitle(whan%)
+ENDIF
+ENDPROC
+:
+DEF PROCwint_redrawtitle(window%)
+LOCAL a%,b%,c%,d%,e%,f%
+IF wCurrOSversion%>=380 THEN
+  SYS "Wimp_ForceRedraw",window%,&4B534154,3
+ELSE
+  SYS "Wimp_GetCaretPosition",,wimp%
+  a%=wimp%!0:b%=wimp%!4:c%=wimp%!8:d%=wimp%!12:e%=wimp%!16:f%=wimp%!20
+  IF a%=window% THEN window%=-1
+  SYS "XWimp_SetCaretPosition",window%,-1,,,-1
+  SYS "Wimp_SetCaretPosition",a%,b%,c%,d%,e%,f%
+ENDIF
+ENDPROC
+:
+DEF PROCwimp_scroll(whan%,side%,direction%,distance%)
+LOCAL cstack%
+wimp%!0=whan%
+SYS "Wimp_GetWindowInfo",,(wimp% OR %1)
+CASE side% OF
+  WHEN 0
+  CASE direction% OF
+    WHEN 0 : IF (wimp%!20-distance%)<wimp%!44 THEN wimp%!20=wimp%!44 ELSE wimp%!20=(wimp%!20-distance%)
+    OTHERWISE : IF (wimp%!20+distance%)>wimp%!52 THEN wimp%!20=wimp%!52 ELSE wimp%!20=(wimp%!20+distance%)
+  ENDCASE
+  OTHERWISE
+  CASE direction% OF
+    WHEN 0 : IF (wimp%!24-distance%)<wimp%!48 THEN wimp%!24=wimp%!48 ELSE wimp%!24=(wimp%!24-distance%)
+    OTHERWISE : IF (wimp%!24+distance%)>wimp%!56 THEN wimp%!24=wimp%!56 ELSE wimp%!24=(wimp%!24+distance%)
+  ENDCASE
+ENDCASE
+IF ((wimp%!32 >> 16) AND 1)=1 THEN
+  SYS "Wimp_OpenWindow",,wimp%
+ELSE
+  SYS "Wimp_OpenWindow",,wimp%
+  SYS "Wimp_CloseWindow",,wimp%
+ENDIF
+ENDPROC
+:
+DEF FNwimp_getscroll(whan%,side%)
+LOCAL return%
+IF side%<>0 THEN side%=1
+wimp%!0=whan%
+SYS "Wimp_GetWindowState",,wimp%
+return%=wimp%!(side%*4+20)
+=return%
+:
+DEF PROCwimp_scrollto(whan%,side%,scrollpos%)
+IF side%<>0 THEN side%=1
+wimp%!0=whan%
+SYS "Wimp_GetWindowState",,wimp%
+wimp%!(side%*4+20)=scrollpos%
+SYS "Wimp_OpenWindow",,wimp%
+IF ((wimp%!32 >> 16) AND 1)=0 THEN
+  SYS "Wimp_CloseWindow",,wimp%
+ENDIF
+ENDPROC
+:
+DEF PROCwimp_banner(whan%,delay%)
+LOCAL time%
+delay%=ABS(delay%)
+PROCwimp_openwindow(whan%,1,-1)
+wBANNER%=TRUE
+SYS "OS_ReadMonotonicTime" TO time%
+wDelaymax%=(delay%*100)+time%
+wBanner%=whan%
+ENDPROC
+:
+DEF FNwimp_createwindow(vminx%,vminy%,vmaxx%,vmaxy%,wminx%,wminy%,wmaxx%,wmaxy%,flags%,colourflags%,wbuttontype%,title$,titleflags%,titlefont%,maxind%,spritearea%)
+LOCAL error$,wflags%,tflags%,len%,name%,whan%,tind%,bits%,wshift%,N%
+IF ((titleflags%>>4 AND 1)=1) AND (wFontbuf%?titlefont%=0) THEN
+  error$="For creating the window with the title "+CHR$(34)+CHR$(160)+title$+CHR$(160)+CHR$(34)+" bit 4 of 'titleflags%' is set but the font handle in 'titlefont%' is invalid. The window will now be created as if bit 4 was unset."
+  PROCwimp_error(werrtitle$,error$,1,"",0,1,"")
+  titleflags%=(titleflags% EOR %00010000)
+ENDIF
+wimp%!0=vminx%:wimp%!4=vminy%:wimp%!8=vmaxx%:wimp%!12=vmaxy%
+wimp%!16=0:wimp%!20=0
+wimp%!24=-1
+wflags%=0
+wflags%=(1<<31)
+RESTORE +0
+FOR bits%=0 TO 16
+  READ wshift%
+  IF ((flags%>>bits%) AND 1) THEN wflags%+=1<<wshift%
+NEXT
+DATA 26,25,24,30,28,29,27,4,5,1,6,8,9,12,13,14,15
+wimp%!28=wflags%
+FOR N%=0 TO 6
+  wimp%?(38-N%)=colourflags% AND %1111
+  colourflags%=colourflags%>>>4
+NEXT
+wimp%?39=0
+wimp%!40=wminx%:wimp%!44=wminy%:wimp%!48=wmaxx%:wimp%!52=wmaxy%
+FOR bits%=0 TO 6
+  READ wshift%
+  IF ((titleflags%>>bits%) AND 1) THEN tflags%+=1<<wshift%
+NEXT
+DATA 0,1,3,4,6,9,11
+IF (titleflags%>>7 AND 1) OR LEN(title$)>11 THEN tflags%+=1<<8
+IF (titleflags%>>4 AND 1) THEN tflags%+=titlefont%<<24
+wimp%!56=tflags%
+wimp%!60=wbuttontype%<<12
+IF spritearea%=0 THEN wimp%!64=1 ELSE wimp%!64=spritearea%
+wimp%?68=0:wimp%?69=0:wimp%?70=0:wimp%?71=0
+IF ((tflags%>>8 AND 1)=0) THEN
+  $(wimp%+72)=title$
+ELSE
+  len%=LEN(title$)+1
+  DIM name% len%-1
+  IF maxind%<len% THEN maxind%=len%
+  $(name%)=title$
+  wimp%!72=name%
+  wimp%!76=-1
+  wimp%!80=maxind%
+ENDIF
+wimp%!84=0
+SYS "Wimp_CreateWindow",,wimp% TO whan%
+=whan%
+:
+DEF PROCwimp_deletewindow(whan%)
+wimp%!0=whan%
+SYS "Wimp_DeleteWindow",,wimp%
+ENDPROC
+:
+DEF PROCwint_pointercentrewindow(whan%)
+LOCAL mx%,my%,width%,height%,xp%,yp%
+SYS "Wimp_GetPointerInfo",,wimp%
+mx%=wimp%!0:my%=wimp%!4
+wimp%!0=whan%
+SYS "Wimp_GetWindowInfo",,(wimp% OR %1)
+width%=wimp%!12-wimp%!4:height%=wimp%!16-wimp%!8
+xp%=mx%-width%/2:yp%=my%-height%/2
+wimp%!4=xp%:wimp%!8=yp%
+wimp%!12=xp%+width%:wimp%!16=yp%+height%
+ENDPROC
+:
+DEF PROCwint_centrewindow
+LOCAL x0%,y0%,x1%,y1%,wwidth%,wheight%,swidth%,sheight%
+x0%=wimp%!4:y0%=wimp%!8
+x1%=wimp%!12:y1%=wimp%!16
+wwidth%=x1%-x0%
+wheight%=y1%-y0%
+swidth%=FNwimp_getscreensize(0)
+sheight%=FNwimp_getscreensize(1)
+x0%=(swidth%-wwidth%)/2
+y0%=(sheight%-wheight%)/2
+wimp%!4=x0%:wimp%!8=y0%
+x1%=x0%+wwidth%:y1%=y0%+wheight%
+wimp%!12=x1%:wimp%!16=y1%
+ENDPROC
+:
+DEF PROCwint_checkuserpane(whan%,wimp%)
+LOCAL a%,stack%
+stack%=wimp%!28
+IF stack%=-3 THEN stack%=-4
+PROCuser_openwindow(whan%,wimp%!4,wimp%!16,stack%)
+a%=FNuser_pane(whan%)
+IF a%<>-1 THEN
+  wimp%!0=whan%
+  SYS "Wimp_GetWindowState",,wimp%
+  wimp%!28=a%
+  SYS "Wimp_OpenWindow",,wimp%
+ENDIF
+ENDPROC
+:
+DEF PROCwint_checksavewindow(whan%)
+LOCAL drag%,write%,ok%
+IF FNuser_savefiletype(whan%)<>"" THEN
+  drag%=0:write%=1:ok%=2
+  PROCuser_saveicon(whan%,drag%,write%,ok%)
+  PROCwimp_putcaret(whan%,write%,-1)
+ENDIF
+ENDPROC
+:
+DEF FNwimp_geticontext(whan%,icon%)
+LOCAL return$,flag%
+return$=""
+wimp%!0=whan%
+wimp%!4=icon%
+SYS "Wimp_GetIconState",,wimp%
+flag%=wimp%!24
+flag%=(flag%>>8)
+IF (flag% AND 1)=0 THEN
+  return$=FNwint_string(wimp%+28)
+ELSE
+  return$=FNwint_string(wimp%!28)
+ENDIF
+=return$
+:
+DEF PROCwimp_puticontext(whan%,icon%,text$)
+LOCAL caret%,flag%,t$,caretwindow%,careticon%,current$,rightcaret%
+caret%=FALSE
+rightcaret%=FALSE
+IF whan%<>-2 THEN
+  wimp%!0=whan%
+  wimp%!4=icon%
+  SYS "Wimp_GetIconState",,wimp%
+  flag%=wimp%!24
+  flag%=(flag%>>8)
+  IF (flag% AND 1)=0 THEN
+    PROCwimp_error(werrtitle$,"Icon "+STR$icon%+" is not indirected",1,"",0,1,"")
+  ELSE
+    current$=$(wimp%!28)
+    IF text$<>current$ THEN
+      SYS "Wimp_GetCaretPosition",,wimp%
+      caretwindow%=wimp%!0
+      careticon%=wimp%!4
+      IF caretwindow%=whan% AND careticon%=icon% THEN
+        caret%=TRUE
+        index%=wimp%!20
+        IF index%=LEN(current$) THEN rightcaret%=TRUE
+        PROCwimp_losecaret
+      ENDIF
+      wimp%!0=whan%
+      wimp%!4=icon%
+      SYS "Wimp_GetIconState",,wimp%
+      wimp%!8=0
+      wimp%!12=0
+      $(wimp%!28)=LEFT$(text$,(wimp%!36)-1)
+      SYS "Wimp_SetIconState",,wimp%
+      IF caret%=TRUE THEN
+        IF rightcaret%=TRUE THEN index%=LEN(text$)
+        PROCwimp_putcaret(whan%,icon%,index%)
+      ENDIF
+    ENDIF
+  ENDIF
+ENDIF
+ENDPROC
+:
+DEF PROCwimp_puticonfont(whan%,icon%,fonthandle%)
+LOCAL outline%,currfont%,caret%,index%
+caret%=FALSE
+IF fonthandle%>0 THEN
+  wimp%!0=whan%
+  wimp%!4=icon%
+  SYS "Wimp_GetIconState",,wimp%
+  outline%=(wimp%!(8+16) >> 6) AND 1
+  IF outline%=1 THEN
+    currfont%=((wimp%!(8+16)>>24) AND &FFFF)
+    IF fonthandle%<>currfont% THEN
+      SYS "Wimp_GetCaretPosition",,wimp%
+      caretwindow%=wimp%!0
+      careticon%=wimp%!4
+      IF caretwindow%=whan% AND careticon%=icon% THEN
+        caret%=TRUE
+        index%=wimp%!20
+        PROCwimp_losecaret
+      ENDIF
+      wimp%!0=whan%
+      wimp%!4=icon%
+      wimp%!8=fonthandle%<<24
+      wimp%!12=&FFFF<<24
+      SYS "Wimp_SetIconState",,wimp%
+      IF caret%=TRUE THEN
+        PROCwimp_putcaret(whan%,icon%,index%)
+      ENDIF
+    ENDIF
+  ELSE
+    PROCwimp_error(werrtitle$,"Icon "+STR$icon%+" was not defined to use outline fonts.",1,"",0,1,"")
+  ENDIF
+ENDIF
+ENDPROC
+:
+DEF PROCwimp_colouricon(whan%,icon%,colour%,background%)
+LOCAL outline%,indirect%,text%,valid%,valid$,temp$,first%,pos%,colour$
+colour%=colour% MOD 16
+wimp%!0=whan%
+wimp%!4=icon%
+SYS "Wimp_GetIconState",,wimp%
+outline%=(wimp%!24>>6) AND 1
+indirect%=(wimp%!24>>8) AND 1
+text%=(wimp%!24) AND 1
+IF outline%=1 THEN
+  IF indirect%=1 AND text%=1 THEN
+    valid%=!(wimp%+8+24)
+    IF valid%<>-1 THEN
+      valid$=FNwint_string(valid%)
+      temp$=FNwimp_changecase(valid$,0)
+      first%=0
+      IF LEFT$(temp$,1)="f" THEN first%=1
+      pos%=INSTR(temp$,";f")+1
+      IF first%=1 OR pos%>1 THEN
+        IF first%=1 THEN pos%=1
+        IF colour%<10 THEN
+          colour$=STR$(colour%)
+        ELSE
+          colour$=MID$("123456789abcdef",colour%,1)
+        ENDIF
+        IF background%=1 THEN
+          MID$(valid$,pos%+1,1)=colour$
+        ELSE
+          MID$(valid$,pos%+2,1)=colour$
+        ENDIF
+        $(valid%)=valid$
+        wimp%!8=0
+        wimp%!12=0
+        SYS "Wimp_SetIconState",,wimp%
+      ELSE
+        PROCwimp_error(werrtitle$,"Sorry, but to change an outline font colour the icon must be defined with a validation string including an F-command. See Dr Wimp Manual Section 2.33",1,"",0,1,"")
+      ENDIF
+    ELSE
+      PROCwimp_error(werrtitle$,"Sorry, but to change an outline font colour the icon must be defined with a validation string including an F-command. See Dr Wimp Manual Section 2.33",1,"",0,1,"")
+    ENDIF
+  ELSE
+    PROCwimp_error(werrtitle$,"Sorry, but the icon must be defined to allow text AND indirected data AND with a validation string including an F-command. See Dr Wimp Manual Section 2.33",1,"",0,1,"")
+  ENDIF
+ELSE
+  IF background%=0 THEN
+    wimp%!8=colour%<<24
+    wimp%!12=15<<24
+  ELSE
+    wimp%!8=colour%<<28
+    wimp%!12=15<<28
+  ENDIF
+  SYS "Wimp_SetIconState",,wimp%
+ENDIF
+ENDPROC
+:
+DEF PROCwimp_iconenable(whan%,icon%,state%)
+LOCAL b%
+IF state%<0 OR state%>2 THEN state%=1
+wimp%!0=whan%
+wimp%!4=icon%
+SYS "Wimp_GetIconState",,wimp%
+b%=(wimp%!24>>22) AND 1
+IF state%=2 THEN state%=b%
+state%=1-state%
+IF b%<>state% THEN
+  IF state%=1 THEN
+    SYS "Wimp_GetCaretPosition",,wimp%
+    IF wimp%!0=whan% AND wimp%!4=icon% THEN SYS "Wimp_SetCaretPosition",-1
+    wimp%!0=whan%
+    wimp%!4=icon%
+  ENDIF
+  wimp%!8=(state%<<22)
+  wimp%!12=(1<<22)
+  SYS "Wimp_SetIconState",,wimp%
+ENDIF
+ENDPROC
+:
+DEF PROCwimp_iconselect(whan%,icon%,state%)
+LOCAL b%
+IF state%<0 OR state%>2 THEN state%=1
+wimp%!0=whan%
+wimp%!4=icon%
+SYS "Wimp_GetIconState",,wimp%
+b%=(wimp%!24>>21) AND 1
+IF state%=2 THEN state%=1-b%
+IF b%<>state% THEN
+  wimp%!8=(state%<<21)
+  wimp%!12=(1<<21)
+  SYS "Wimp_SetIconState",,wimp%
+ENDIF
+ENDPROC
+:
+DEF FNwimp_geticonselect(whan%,icon%)
+wimp%!0=whan%
+wimp%!4=icon%
+SYS "Wimp_GetIconState",,wimp%
+=(wimp%!24>>21) AND 1
+:
+DEF FNwimp_geticonsize(whan%,icon%,side%)
+LOCAL return%
+return%=0
+IF side%<>0 THEN side%=1
+wimp%!0=whan%
+wimp%!4=icon%
+SYS "Wimp_GetIconState",,wimp%
+return%=wimp%!(side%*4+16)-wimp%!(side%*4+8)
+=return%
+:
+DEF PROCwimp_resizeicon(whan%,icon%,minx%,miny%,maxx%,maxy%)
+wimp%!0=whan%
+wimp%!4=icon%
+SYS "Wimp_GetIconState",,wimp%
+SYS "Wimp_ResizeIcon",whan%,icon%,minx%,miny%,maxx%,maxy%
+PROCwimp_updatewindow(whan%,wimp%!8,wimp%!12,wimp%!16,wimp%!20)
+PROCwimp_updatewindow(whan%,minx%,miny%,maxx%,maxy%)
+ENDPROC
+:
+DEF PROCwimp_moveicon(whan%,icon%,minx%,miny%)
+LOCAL width%,height%,maxx%,maxy%
+wimp%!0=whan%
+wimp%!4=icon%
+SYS "Wimp_GetIconState",,wimp%
+width%=wimp%!16-wimp%!8
+height%=wimp%!20-wimp%!12
+maxx%=minx%+width%
+maxy%=miny%+height%
+SYS "Wimp_ResizeIcon",whan%,icon%,minx%,miny%,maxx%,maxy%
+PROCwimp_updatewindow(whan%,wimp%!8,wimp%!12,wimp%!16,wimp%!20)
+PROCwimp_updatewindow(whan%,minx%,miny%,maxx%,maxy%)
+ENDPROC
+:
+DEF FNwimp_geticonenable(whan%,icon%)
+wimp%!0=whan%
+wimp%!4=icon%
+SYS "Wimp_GetIconState",,wimp%
+=1-((wimp%!24>>22) AND 1)
+:
+DEF FNwimp_geticonposition(whan%,icon%,coord%)
+LOCAL return%
+IF coord%<0 THEN coord%=0
+IF coord%>3 THEN coord%=3
+return%=0
+wimp%!0=whan%
+wimp%!4=icon%
+SYS "Wimp_GetIconState",,wimp%
+CASE coord% OF
+  WHEN 0:return%=wimp%!8
+  WHEN 1:return%=wimp%!12
+  WHEN 2:return%=wimp%!16
+  WHEN 3:return%=wimp%!20
+ENDCASE
+=return%
+:
+DEF PROCwimp_iconbit(whan%,icon%,bit%,state%)
+LOCAL b%
+IF bit%<>23 THEN
+  IF bit%<0 THEN bit%=0
+  IF bit%>31 THEN bit%=31
+  IF state%<0 OR state%>2 THEN state%=1
+  wimp%!0=whan%
+  wimp%!4=icon%
+  SYS "Wimp_GetIconState",,wimp%
+  b%=(wimp%!24>>bit%) AND 1
+  IF state%=2 THEN state%=1-b%
+  IF b%<>state% THEN
+    wimp%!8=state%<<bit%
+    wimp%!12=1<<bit%
+    SYS "Wimp_SetIconState",,wimp%
+  ENDIF
+ENDIF
+ENDPROC
+:
+DEF FNwimp_geticonbit(whan%,icon%,bit%)
+LOCAL flags%,state%
+IF bit%<0 THEN bit%=0
+IF bit%>31 THEN bit%=31
+wimp%!0=whan%
+wimp%!4=icon%
+SYS "Wimp_GetIconState",,wimp%
+flags%=wimp%!(8+16)
+state%=((flags%>>bit%) AND 1)
+=state%
+:
+DEF FNwimp_createicon(whan%,wminx%,wminy%,wmaxx%,wmaxy%,flags%,esg%,buttontype%,fcol%,bcol%,fhan%,text$,spritename$,spritearea%,maxind%,valid$)
+LOCAL error$,icon%
+IF ((flags%>>6 AND 1)=1) AND (wFontbuf%?fhan%=0) THEN
+  error$="For creating the icon at window position "+STR$(wminx%)+"/"+STR$(wminy%)+" bit 6 of 'flags%' is set but the font handle in 'fhan%' is invalid. The window will now be created as if bit 6 was unset but with default outline font colours."
+  PROCwimp_error(werrtitle$,error$,1,"",0,1,"")
+  flags%=(flags% EOR %000000001000000)
+  fcol%=7
+  bcol%=0
+ENDIF
+wimp%!0=whan%
+PROCwint_defineicon(wminx%,wminy%,wmaxx%,wmaxy%,flags%,esg%,buttontype%,fcol%,bcol%,fhan%,text$,spritename$,spritearea%,maxind%,valid$)
+SYS "Wimp_CreateIcon",,wimp% TO icon%
+=icon%
+:
+DEF PROCwimp_ploticon(wminx%,wminy%,wmaxx%,wmaxy%,flags%,esg%,buttontype%,fcol%,bcol%,fhan%,text$,spritename$,spritearea%,maxind%,valid$)
+PROCwint_defineicon(wminx%,wminy%,wmaxx%,wmaxy%,flags%,esg%,buttontype%,fcol%,bcol%,fhan%,text$,spritename$,spritearea%,maxind%,valid$)
+SYS "Wimp_PlotIcon",,(wimp%+4)
+ENDPROC
+:
+DEF PROCwint_defineicon(wminx%,wminy%,wmaxx%,wmaxy%,flags%,esg%,buttontype%,fcol%,bcol%,fhan%,text$,spritename$,spritearea%,maxind%,valid$)
+LOCAL iflags%,len%,buf%,valid%,t%,s%,f%,ind%,loflags%,hiflags%
+wimp%!4=wminx%
+wimp%!8=wminy%
+wimp%!12=wmaxx%
+wimp%!16=wmaxy%
+iflags%=0
+t%=flags%>>0 AND 1
+s%=flags%>>1 AND 1
+f%=flags%>>6 AND 1
+ind%=flags%>>8 AND 1
+loflags%=flags% AND %111111111111
+hiflags%=flags% AND %111000000000000
+iflags%+=loflags%
+iflags%+=hiflags%<<9
+iflags%+=esg%<<16
+IF f% THEN
+  iflags%+=fhan%<<24
+ELSE
+  iflags%+=fcol%<<24
+  iflags%+=bcol%<<28
+ENDIF
+iflags%+=buttontype%<<12
+wimp%!20=iflags%
+IF t%=1 AND s%=0 AND ind%=0 THEN $(wimp%+24)=text$
+IF t%=0 AND s%=1 AND ind%=0 THEN $(wimp%+24)=spritename$
+IF t%=1 AND s%=1 AND ind%=0 THEN $(wimp%+24)=spritename$
+IF t%=1 AND ind%=1 THEN
+  len%=LEN(valid$)+1
+  DIM valid% len%-1
+  len%=LEN(text$)+1
+  IF maxind%<len% THEN maxind%=len%
+  DIM buf% maxind%-1
+  $(buf%)=text$
+  $(valid%)=valid$
+  wimp%!24=buf%
+  wimp%!28=valid%
+  wimp%!32=maxind%
+ENDIF
+IF t%=0 AND s%=1 AND ind%=1 THEN
+  len%=LEN(spritename$)+1
+  IF maxind%<len% THEN maxind%=len%
+  DIM buf% maxind%-1
+  $(buf%)=spritename$
+  wimp%!24=buf%
+  IF spritearea%=0 THEN wimp%!28=1 ELSE wimp%!28=spritearea%
+  wimp%!32=maxind%
+ENDIF
+ENDPROC
+:
+DEF PROCwimp_deleteicon(whan%,icon%,redraw%)
+wimp%!0=whan%
+wimp%!4=icon%
+IF redraw%=1 THEN
+  SYS "Wimp_GetIconState",,wimp%
+  minx%=wimp%!8
+  miny%=wimp%!12
+  maxx%=wimp%!16
+  maxy%=wimp%!20
+ENDIF
+SYS "Wimp_DeleteIcon",,wimp%
+IF redraw%=1 THEN PROCwimp_updatewindow(whan%,minx%,miny%,maxx%,maxy%)
+ENDPROC
+:
+DEF PROCwimp_iconhide(whan%,icon%,state%)
+LOCAL b%
+IF state%<0 OR state%>2 THEN state%=1
+wimp%!0=whan%
+wimp%!4=icon%
+SYS "Wimp_GetIconState",,wimp%
+b%=(wimp%!24>>23) AND 1
+IF state%=2 THEN state%=1-b%
+IF b%<>state% THEN
+  wimp%!8=(state%<<7)+(state%<<23)
+  wimp%!12=(1<<7)+(1<<23)
+  SYS "Wimp_SetIconState",,wimp%
+ENDIF
+ENDPROC
+:
+DEF PROCwimp_putcaret(whan%,icon%,index%)
+LOCAL flag%,text$,len%
+IF icon%>=0 THEN
+  wimp%!0=whan%
+  wimp%!4=icon%
+  SYS "Wimp_GetIconState",,wimp%
+  flag%=wimp%!24
+  flag%=(flag%>>12)
+  flag%=flag% AND &F
+  IF flag%=14 OR flag%=15 THEN
+    text$=FNwimp_geticontext(whan%,icon%)
+    len%=LEN(text$)
+    IF index%<0 OR index%>len% THEN index%=len%
+    SYS "Wimp_SetCaretPosition",whan%,icon%,,,-1,index%
+  ELSE
+    PROCwimp_error(werrtitle$,"The icon is not writable and therefore cannot take the caret.",1,"",0,1,"")
+  ENDIF
+ELSE
+  SYS "Wimp_SetCaretPosition",whan%,icon%,,,-1,-1
+ENDIF
+ENDPROC
+:
+DEF PROCwimp_losecaret
+SYS "Wimp_SetCaretPosition",-1
+ENDPROC
+:
+DEF FNwimp_getcaretposition(choice%)
+LOCAL return%
+IF choice%<0 THEN choice%=0
+IF choice%>4 THEN choice%=4
+return%=-1
+SYS "Wimp_GetCaretPosition",,wimp%
+IF wimp%!0<>-1 THEN
+  CASE choice% OF
+    WHEN 0,1,2,3: return%=wimp%!(4*choice%)
+    WHEN 4: return%=wimp%!20
+  ENDCASE
+ENDIF
+=return%
+:
+DEF PROCwint_startdrag(whan%,icon%,button%,mousex%,mousey%)
+LOCAL a%,b%
+wSavet$=FNuser_savefiletype(whan%)
+IF wSavet$="" THEN
+  a%=FNuser_sliderback(whan%,icon%)
+  b%=FNuser_slider(whan%,icon%)
+  IF a%=-1 AND b%=-1 THEN
+    IF FNuser_dragicon(whan%,icon%,button%/16)=1 THEN
+      PROCwint_starticondrag(whan%,icon%,button%,mousex%,mousey%)
+    ENDIF
+  ELSE
+    IF a%=-1 THEN icon%=b%
+    PROCwint_startsliderdrag(whan%,icon%)
+  ENDIF
+ELSE
+  PROCwint_startsavedrag(whan%,icon%)
+ENDIF
+ENDPROC
+:
+DEF PROCwint_startsavedrag(whan%,icon%)
+LOCAL ox%,oy%,t%,i%,spritearea%,spritename$,drag%,write%,ok%,valid$
+IF LEN(wSavet$)<4 THEN
+  wSavew%=whan%
+  wSavedrag%=whan%
+  wimp%!0=wSavew%
+  SYS "Wimp_GetWindowState",,wimp%
+  ox%=wimp%!4-wimp%!20
+  oy%=wimp%!16-wimp%!24
+  drag%=0:write%=1:ok%=2
+  PROCuser_saveicon(wSavew%,drag%,write%,ok%)
+  IF drag%=icon% THEN
+    wimp%!4=drag%
+    SYS "Wimp_GetIconState",,wimp%
+    t%=(wimp%!(8+16)) AND 1
+    i%=(wimp%!(8+16)>>8) AND 1
+    IF t%=0 THEN
+      IF i%=0 THEN spritename$=FNwint_string(wimp%+(8+20)):spritearea%=1
+      IF i%=1 THEN spritename$=FNwint_string(wimp%!(8+20)):spritearea%=wimp%!(8+24)
+      IF spritearea%<>1 THEN SYS "XOS_SpriteOp",&128,spritearea%,spritename$ TO;f% :IF (f% AND 1)=1 THEN spritearea%=1
+    ELSE
+      valid$=$(wimp%!32)
+      spritearea%=1
+      spritename$=FNwint_extractspritename(valid$)
+    ENDIF
+    wimp%!0=wimp%!8+ox%
+    wimp%!4=wimp%!12+oy%
+    wimp%!8=wimp%!16+ox%
+    wimp%!12=wimp%!20+oy%
+    SYS "DragASprite_Start",%11001010,spritearea%,spritename$,wimp%
+  ENDIF
+ELSE
+  PROCwimp_error(werrtitle$,"Filetype string too long in 'DEF FNuser_savefiletype'.",1,"",0,0,"Quit "+wappname$):PROCwimp_closedown:END
+ENDIF
+ENDPROC
+:
+DEF FNwint_extractspritename(valid$)
+LOCAL name$,pos%
+IF INSTR(valid$,";")=0 THEN
+  name$=RIGHT$(valid$,LEN(valid$)-1)
+ELSE
+  IF INSTR(valid$,"s")=1 OR INSTR(valid$,"S")=1 THEN
+    name$=""
+    pos%=1
+    REPEAT
+      pos%+=1
+      IF MID$(valid$,pos%,1)<>";" THEN
+        name$+=MID$(valid$,pos%,1)
+      ENDIF
+    UNTIL MID$(valid$,pos%,1)=";"
+  ELSE
+    pos%=0
+    REPEAT
+      pos%+=1
+    UNTIL MID$(valid$,pos%,1)=";" AND (MID$(valid$,pos%+1,1)="s" OR MID$(valid$,pos%+1,1)="S")
+    name$=""
+    pos%=pos%+1
+    REPEAT
+      pos%+=1
+      IF MID$(valid$,pos%,1)<>";" THEN
+        name$+=MID$(valid$,pos%,1)
+      ENDIF
+    UNTIL MID$(valid$,pos%,1)=";"
+  ENDIF
+ENDIF
+=name$
+:
+DEF PROCwint_endsavedrag
+LOCAL drag%,write%,ok%,whan%,ico%,x%,y%
+drag%=0:write%=1:ok%=2
+PROCuser_saveicon(wSavew%,drag%,write%,ok%)
+SYS "DragASprite_Stop"
+SYS "Wimp_GetPointerInfo",,wimp%
+whan%=wimp%!12
+ico%=wimp%!16
+x%=wimp%!0
+y%=wimp%!4
+leaf$=FNwimp_getleafname(FNwimp_geticontext(wSavew%,write%))
+wimp%!0=(44+LEN(leaf$)+4) AND &1FC
+wimp%!12=0
+wimp%!16=1
+wimp%!20=whan%
+wimp%!24=ico%
+wimp%!28=x%
+wimp%!32=y%
+wimp%!36=1024
+SYS "OS_ReadUnsigned",10,"&"+wSavet$ TO ,,v%
+wimp%!40=v%
+PROCwint_zeroterminate(wimp%+44,leaf$)
+SYS "Wimp_SendMessage",18,wimp%,wimp%!20,wimp%!24
+wSavedrag%=-1
+ENDPROC
+:
+DEF PROCwimp_bar(whan%,icon%,len%,dir%)
+LOCAL minx%,miny%,maxx%,maxy%,flag%,data1%,data2%,data3%,border%,filled%,oldb%,newend%
+wimp%!0=whan%
+wimp%!4=icon%
+SYS "Wimp_GetIconState",,wimp%
+minx%=wimp%!8
+miny%=wimp%!12
+maxx%=wimp%!16
+maxy%=wimp%!20
+flag%=wimp%!24
+data1%=wimp%!28
+data2%=wimp%!32
+data3%=wimp%!36
+filled%=(flag%>>5) AND 1
+border%=(flag%>>2) AND 1
+oldb%=(flag%>>11) AND 1
+IF len%<0 THEN len%=0
+SYS "Wimp_DeleteIcon",,wimp%
+IF dir%=0 THEN
+  newend%=len%+minx%
+  wimp%!4=minx%:wimp%!8=miny%
+  wimp%!12=newend%:wimp%!16=maxy%
+ELSE
+  newend%=len%+miny%
+  wimp%!4=minx%:wimp%!8=miny%
+  wimp%!12=maxx%:wimp%!16=newend%
+ENDIF
+wimp%!20=flag%
+wimp%!24=data1%
+wimp%!28=data2%
+wimp%!32=data3%
+SYS "Wimp_CreateIcon",,wimp%
+wimp%!0=whan%
+wimp%!4=icon%
+IF len%=0 THEN
+  PROCwint_zerolengthbar(border%)
+ELSE
+  IF filled%=0 THEN
+    wimp%!8=32:wimp%!12=32
+    SYS "Wimp_SetIconState",,wimp%
+    IF oldb%=1 THEN
+      wimp%!8=4:wimp%!12=4
+      SYS "Wimp_SetIconState",,wimp%
+    ENDIF
+  ENDIF
+ENDIF
+IF dir%=0 THEN
+  IF newend%<maxx% THEN
+    SYS "Wimp_ForceRedraw",whan%,newend%-2,miny%,maxx%,maxy%
+  ELSE
+    SYS "Wimp_ForceRedraw",whan%,maxx%-2,miny%,newend%,maxy%
+  ENDIF
+ELSE
+  IF newend%<maxy% THEN
+    SYS "Wimp_ForceRedraw",whan%,minx%,newend%-2,maxx%,maxy%
+  ELSE
+    SYS "Wimp_ForceRedraw",whan%,minx%,maxy%-2,maxx%,newend%
+  ENDIF
+ENDIF
+ENDPROC
+:
+DEF PROCwint_zerolengthbar(border%)
+wimp%!8=0:wimp%!12=32
+SYS "Wimp_SetIconState",,wimp%
+IF border%=1 THEN
+  wimp%!8=2048:wimp%!12=2048
+  SYS "Wimp_SetIconState",,wimp%
+  wimp%!8=0:wimp%!12=4
+  SYS "Wimp_SetIconState",,wimp%
+ELSE
+  wimp%!8=0:wimp%!12=2048
+  SYS "Wimp_SetIconState",,wimp%
+ENDIF
+ENDPROC
+:
+DEF FNwimp_getsliderpcent(whan%,icon%)
+LOCAL a%,minx%,miny%,maxx%,maxy%,s1%,s2%,s3%,s4%,pcreal
+pcreal=0
+a%=FNuser_sliderback(whan%,icon%)
+IF a%=-1 THEN
+  pcreal=0
+ELSE
+  wimp%!0=whan%
+  wimp%!4=icon%
+  SYS "Wimp_GetIconState",,wimp%
+  minx%=wimp%!8:maxx%=wimp%!16
+  miny%=wimp%!12:maxy%=wimp%!20
+  s1%=maxx%-minx%:s2%=maxy%-miny%
+  wimp%!0=whan%
+  wimp%!4=a%
+  SYS "Wimp_GetIconState",,wimp%
+  minx%=wimp%!8:maxx%=wimp%!16
+  miny%=wimp%!12:maxy%=wimp%!20
+  s3%=maxx%-minx%:s4%=maxy%-miny%
+  IF s4%>s3% THEN
+    pcreal=(s2%/s4%)*100
+  ELSE
+    pcreal=(s1%/s3%)*100
+  ENDIF
+ENDIF
+=pcreal
+:
+DEF PROCwimp_putsliderpcent(whan%,icon%,pcreal)
+LOCAL a%,s1%,s2%,minx%,maxx%,len%
+a%=FNuser_sliderback(whan%,icon%)
+IF a%=-1 THEN
+ELSE
+  wimp%!0=whan%
+  wimp%!4=a%
+  SYS "Wimp_GetIconState",,wimp%
+  minx%=wimp%!8:maxx%=wimp%!16
+  miny%=wimp%!12:maxy%=wimp%!20
+  s1%=maxx%-minx%:s2%=maxy%-miny%
+  IF s2%>s1% THEN
+    len%=(pcreal/100)*s2%
+    PROCwimp_bar(whan%,icon%,len%,1)
+  ELSE
+    len%=(pcreal/100)*s1%
+    PROCwimp_bar(whan%,icon%,len%,0)
+  ENDIF
+ENDIF
+ENDPROC
+:
+DEF PROCwint_startsliderdrag(whan%,icon%)
+LOCAL ox%,oy%,bx1%,by1%,bx2%,by2%
+wimp%!0=whan%
+SYS "Wimp_GetWindowState",,wimp%
+ox%=wimp%!4-wimp%!20
+oy%=wimp%!16-wimp%!24
+wimp%!0=whan%
+wimp%!4=FNuser_sliderback(whan%,icon%)
+SYS "Wimp_GetIconState",,wimp%
+bx1%=ox%+wimp%!8:by1%=oy%+wimp%!12
+bx2%=ox%+wimp%!16:by2%=oy%+wimp%!20
+wimp%!0=whan%
+wimp%!4=icon%
+SYS "Wimp_GetIconState",,wimp%
+wimp%!4=7
+wimp%!8=ox%+wimp%!8
+wimp%!12=oy%+wimp%!12
+wimp%!16=ox%+wimp%!16
+wimp%!20=oy%+wimp%!20
+wimp%!24=bx1%
+wimp%!28=by1%
+wimp%!32=bx2%
+wimp%!36=by2%
+SYS "Wimp_DragBox",,wimp%
+wSlidedrag%=whan%:wSlidew%=whan%:wSlidei%=icon%:wOx%=ox%:wOy%=oy%:wLen%=-1:wLen2%=-1
+wSwid%=bx2%-bx1%:wShei%=by2%-by1%
+ENDPROC
+:
+DEF PROCwint_draggingslider
+LOCAL minx%,miny%,maxx%,maxy%,len%,len2%
+wimp%!0=wSlidew%
+wimp%!4=wSlidei%
+SYS "Wimp_GetIconState",,wimp%
+minx%=wimp%!8+wOx%:maxx%=wimp%!16+wOx%
+miny%=wimp%!12+wOy%:maxy%=wimp%!20+wOy%
+SYS "Wimp_GetPointerInfo",,wimp%
+len%=wimp%!0-minx%
+len2%=wimp%!4-miny%
+IF wShei%>wSwid% THEN
+  IF len2%<>wLen2% THEN
+    PROCwimp_bar(wSlidew%,wSlidei%,len2%,1)
+    wLen2%=len2%
+    PROCuser_slidervalue(wSlidew%,wSlidei%,FNwint_calcsliderpcent(wSlidew%,wSlidei%,wShei%,1),1)
+  ENDIF
+ELSE
+  IF len%<>wLen% THEN
+    PROCwimp_bar(wSlidew%,wSlidei%,len%,0)
+    wLen%=len%
+    PROCuser_slidervalue(wSlidew%,wSlidei%,FNwint_calcsliderpcent(wSlidew%,wSlidei%,wSwid%,0),0)
+  ENDIF
+ENDIF
+ENDPROC
+:
+DEF PROCwint_endsliderdrag
+wSlidedrag%=-1
+IF wShei%>wSwid% THEN
+  PROCuser_slidervalue(wSlidew%,wSlidei%,FNwint_calcsliderpcent(wSlidew%,wSlidei%,wShei%,1),1)
+ELSE
+  PROCuser_slidervalue(wSlidew%,wSlidei%,FNwint_calcsliderpcent(wSlidew%,wSlidei%,wSwid%,0),0)
+ENDIF
+ENDPROC
+:
+DEF PROCwint_clickedslider(whan%,icon%,mx%,my%)
+LOCAL len%,minx%,miny%,maxx%,maxy%,ox%,oy%,len2%,minxb%,minyb%,maxxb%,maxyb%
+IF wimp%!8=2 THEN
+ELSE
+  wimp%!0=whan%
+  SYS "Wimp_GetWindowState",,wimp%
+  ox%=wimp%!4-wimp%!20
+  oy%=wimp%!16-wimp%!24
+  wimp%!0=whan%
+  wimp%!4=icon%
+  SYS "Wimp_GetIconState",,wimp%
+  minx%=wimp%!8+ox%:maxx%=wimp%!16+ox%
+  miny%=wimp%!12+oy%:maxy%=wimp%!20+oy%
+  len%=mx%-minx%:len2%=my%-miny%
+  wimp%!0=whan%
+  wimp%!4=FNuser_sliderback(whan%,icon%)
+  SYS "Wimp_GetIconState",,wimp%
+  minxb%=wimp%!8+ox%:maxxb%=wimp%!16+ox%
+  minyb%=wimp%!12+oy%:maxyb%=wimp%!20+oy%
+  IF (maxyb%-minyb%)>(maxxb%-minxb%) THEN
+    PROCwimp_bar(whan%,icon%,len2%,1)
+  ELSE
+    PROCwimp_bar(whan%,icon%,len%,0)
+  ENDIF
+  wimp%!0=whan%
+  wimp%!4=FNuser_sliderback(whan%,icon%)
+  SYS "Wimp_GetIconState",,wimp%
+  IF (maxyb%-minyb%)>(maxxb%-minxb%) THEN
+    PROCuser_slidervalue(whan%,icon%,FNwint_calcsliderpcent(whan%,icon%,wimp%!20-wimp%!12,1),1)
+  ELSE
+    PROCuser_slidervalue(whan%,icon%,FNwint_calcsliderpcent(whan%,icon%,wimp%!16-wimp%!8,0),0)
+  ENDIF
+ENDIF
+ENDPROC
+:
+DEF FNwint_calcsliderpcent(whan%,icon%,w%,dir%)
+LOCAL slideh%,slidew%,pc%
+pc%=0
+wimp%!0=whan%
+wimp%!4=icon%
+SYS "Wimp_GetIconState",,wimp%
+slideh%=wimp%!20-wimp%!12
+slidew%=wimp%!16-wimp%!8
+IF dir%=0 THEN
+  pc%=INT((slidew%/w%)*100)
+ELSE
+  pc%=INT((slideh%/w%)*100)
+ENDIF
+=pc%
+:
+DEF PROCwint_starticondrag(whan%,icon%,button%,mousex%,mousey%)
+LOCAL visminx%,visminy%,vismaxx%,vismaxy%,bx1%,by1%,bx2%,by2%
+LOCAL boundsminx%,boundsminy%,boundsmaxx%,boundsmaxy%
+LOCAL ox%,oy%,t%,i%,spritearea%,spritename$,drag%,write%,ok%
+wimp%!0=whan%
+SYS "Wimp_GetWindowState",,wimp%
+visminx%=wimp%!4
+visminy%=wimp%!8
+vismaxx%=wimp%!12
+vismaxy%=wimp%!16
+ox%=visminx%-wimp%!20
+oy%=vismaxy%-wimp%!24
+wimp%!0=whan%
+wimp%!4=icon%
+SYS "Wimp_GetIconState",,wimp%
+bx1%=ox%+wimp%!8
+by1%=oy%+wimp%!12
+bx2%=ox%+wimp%!16
+by2%=oy%+wimp%!20
+Relminx%=bx1%-mousex%
+Relminy%=by1%-mousey%
+Relmaxx%=bx2%-mousex%
+Relmaxy%=by2%-mousey%
+wimp%!4=5
+wimp%!8=bx1%
+wimp%!12=by1%
+wimp%!16=bx2%
+wimp%!20=by2%
+boundsminx%=visminx%
+boundsminy%=visminy%
+boundsmaxx%=vismaxx%
+boundsmaxy%=vismaxy%
+PROCwint_savewimp
+PROCuser_seticondragbounds(whan%,icon%,button%/16,mousex%,mousey%,boundsminx%,boundsminy%,boundsmaxx%,boundsmaxy%)
+PROCwint_loadwimp
+wimp%!24=boundsminx%
+wimp%!28=boundsminy%
+wimp%!32=boundsmaxx%
+wimp%!36=boundsmaxy%
+SYS "Wimp_DragBox",,wimp%
+wIcondrag%=whan%:wIconw%=whan%:wIconi%=icon%:wDragbutton%=button%/16:wStartx%=mousex%:wStarty%=mousey%
+ENDPROC
+:
+DEF PROCwint_draggingicon
+LOCAL x%,y%,overwindow%,overicon%,dragboxminx%,dragboxminy%,dragboxmaxx%,dragboxmaxy%
+SYS "Wimp_GetPointerInfo",,wimp%
+x%=wimp%!0
+y%=wimp%!4
+overwindow%=wimp%!12
+overicon%=wimp%!16
+dragboxminx%=x%+Relminx%
+dragboxminy%=y%+Relminy%
+dragboxmaxx%=x%+Relmaxx%
+dragboxmaxy%=y%+Relmaxy%
+PROCuser_draggingicon(wIconw%,wIconi%,wDragbutton%,wStartx%,wStarty%,x%,y%,overwindow%,overicon%,dragboxminx%,dragboxminy%,dragboxmaxx%,dragboxmaxy%)
+ENDPROC
+:
+DEF PROCwint_endicondrag(dragboxminx%,dragboxminy%,dragboxmaxx%,dragboxmaxy%)
+LOCAL whan%,icon%,x%,y%
+wIcondrag%=-1
+SYS "Wimp_GetPointerInfo",,wimp%
+whan%=wimp%!12
+icon%=wimp%!16
+x%=wimp%!0
+y%=wimp%!4
+PROCuser_endicondrag(wIconw%,wIconi%,wDragbutton%,wStartx%,wStarty%,dragboxminx%,dragboxminy%,dragboxmaxx%,dragboxmaxy%,whan%,icon%,x%,y%)
+ENDPROC
+:
+DEF FNwimp_iconbar(spritename$,text$,maxlen%,pos%)
+LOCAL temptext$,return%
+IF pos%<0 OR pos%>1 THEN pos%=1
+return%=-2
+pos%-=2
+DIM wIbarSprite% 19
+IF text$="" THEN
+  return%=FNwint_iconbarsp(spritename$,pos%)
+ELSE
+  IF LEN(text$) > maxlen% THEN maxlen%=LEN(text$)
+  wMaxlen%=maxlen%
+  DIM wIbarSprtxt% wMaxlen%-1
+  temptext$=STRING$(wMaxlen%,"8")
+  $wIbarSprite%="s"+spritename$
+  $wIbarSprtxt%=temptext$
+  wimp%!0=pos%
+  wimp%!4=0
+  wimp%!8=-16
+  wimp%!12=128
+  wimp%!16=88
+  wimp%!20=&1700310B
+  wimp%!24=wIbarSprtxt%
+  wimp%!28=wIbarSprite%
+  wimp%!32=wMaxlen%+1
+  wBARTEXT%=TRUE
+  SYS "Wimp_CreateIcon",,wimp% TO wIbarhan%
+  PROCwimp_puticonbartext(LEFT$(text$,wMaxlen%))
+ENDIF
+=return%
+:
+DEF FNwint_iconbarsp(spritename$,pos%)
+$wIbarSprite%=spritename$
+wimp%!0=pos%
+wimp%!4=0
+wimp%!8=0
+wimp%!12=68
+wimp%!16=80
+wimp%!20=&1700310A
+wimp%!24=wIbarSprite%
+wimp%!28=1
+wimp%!32=20
+wBARTEXT%=FALSE
+SYS "Wimp_CreateIcon",,wimp% TO wIbarhan%
+=-2
+:
+DEF PROCwimp_puticonbartext(text$)
+IF wBARTEXT%=TRUE THEN
+  IF $(wIbarSprtxt%)<>LEFT$(text$,wMaxlen%) THEN
+    wimp%!0=-2
+    wimp%!4=wIbarhan%
+    SYS "Wimp_GetIconState",,wimp%
+    $(wIbarSprtxt%)=LEFT$(text$,wMaxlen%)
+    SYS "Wimp_ForceRedraw",-2,wimp%!8,wimp%!12,wimp%!16,wimp%!20
+  ENDIF
+ENDIF
+ENDPROC
+:
+DEF PROCwimp_iconbarsprite(spritename$)
+IF wBARTEXT%=FALSE THEN
+  PROCwint_ibarspritep(spritename$)
+ELSE
+  IF $(wIbarSprite%)<>"s"+spritename$ THEN
+    $wIbarSprite%="s"+spritename$
+    wimp%!0=-2
+    wimp%!4=wIbarhan%
+    SYS "Wimp_GetIconState",,wimp%
+    SYS "Wimp_ForceRedraw",-2,wimp%!8,wimp%!12,wimp%!16,wimp%!20
+  ENDIF
+ENDIF
+ENDPROC
+:
+DEF PROCwint_ibarspritep(spritename$)
+IF $(wIbarSprite%)<>spritename$ THEN
+  wimp%!0=-2
+  wimp%!4=wIbarhan%
+  SYS "Wimp_GetIconState",,wimp%
+  $(wimp%!28)=spritename$
+  SYS "Wimp_ForceRedraw",-2,wimp%!8,wimp%!12,wimp%!16,wimp%!20
+ENDIF
+ENDPROC
+:
+DEF FNwimp_createmenu(menu$,size%)
+LOCAL menu%,num%,pos%,ptr%,L%,m$,width%,extra%,title$,itemlen%
+num%=FNwint_numberofentries(menu$)
+num%-=1
+IF size%<=num% THEN size%=num%
+extra%=size%-num%
+DIM menu% (4+28+(size%*24))-1
+!menu%=size%
+menu%=menu%+4
+pos%=INSTR(menu$,"/")
+IF pos%=1 THEN
+  title$=" "
+ELSE
+  title$=LEFT$(menu$,pos%-1)
+ENDIF
+menu$=RIGHT$(menu$,LEN(menu$)-pos%)
+width%=FNwint_titleblockandwidth(menu%,title$,0)
+ptr%=menu%+28
+FOR L%=1 TO num%
+  m$=FNwint_decodemenuentry(menu$,L%)
+  itemlen%=FNwint_menuitemblockandwidth(ptr%,num%,L%,m$,0)
+  IF itemlen%>width% THEN width%=itemlen%
+  ptr%+=24
+NEXT L%
+menu%!16=width%+16
+IF extra%>0 THEN
+  PROCwint_menuextraitems(ptr%,extra%)
+ENDIF
+=menu%
+:
+DEF FNwimp_createmenuarray(array$(),size%)
+LOCAL num%,extra%,menu%,L%,ptr%,width%,itemlen%,title$,m$,itemtext%,itemlen%
+num%=FNwint_getmenuarraysize(array$())
+IF size%<num% THEN size%=num%
+extra%=size%-num%
+DIM menu% (4+28+(24*size%))-1
+!menu%=size%
+menu%=menu%+4
+title$=array$(0)
+IF title$="" THEN title$=" "
+width%=FNwint_titleblockandwidth(menu%,title$,0)
+ptr%=menu%+28
+FOR L%=1 TO num%
+  m$=array$(L%)
+  itemlen%=FNwint_menuitemblockandwidth(ptr%,num%,L%,m$,0)
+  IF itemlen%>width% THEN width%=itemlen%
+  ptr%+=24
+NEXT L%
+menu%!16=width%+16
+IF extra%>0 THEN
+  PROCwint_menuextraitems(ptr%,extra%)
+ENDIF
+=menu%
+:
+DEF FNwimp_createmessagemenu(messagefilehandle%,token$,title$,size%)
+LOCAL num%,extra%,menu%,L%,ptr%,width%,itemlen%,m$
+num%=FNwimp_getnumberofmessages(messagefilehandle%,token$)
+m$=FNwimp_messlookup(messagefilehandle%,token$+"T","","")
+IF m$="" THEN m$=FNwimp_messlookup(messagefilehandle%,token$+"t","","")
+IF m$<>"" THEN num%-=1
+IF title$="" THEN
+  IF m$="" THEN m$=" "
+ELSE
+  m$=title$
+ENDIF
+IF size%<num% THEN size%=num%
+extra%=size%-num%
+DIM menu% (4+28+(24*size%))-1
+!menu%=size%
+menu%=menu%+4
+width%=FNwint_titleblockandwidth(menu%,m$,0)
+ptr%=menu%+28
+FOR L%=1 TO num%
+  m$=FNwimp_messlookup(messagefilehandle%,token$+STR$(L%),"","")
+  itemlen%=FNwint_menuitemblockandwidth(ptr%,num%,L%,m$,0)
+  IF itemlen%>width% THEN width%=itemlen%
+  ptr%+=24
+NEXT L%
+menu%!16=width%+16
+IF extra%>0 THEN
+  PROCwint_menuextraitems(ptr%,extra%)
+ENDIF
+=menu%
+:
+DEF PROCwimp_recreatemenu(menu%,menu$)
+LOCAL num%,pos%,L%,ptr%,m$,title$,width%,itemlen%
+IF !(menu%-4)=-1 THEN
+  PROCwimp_error(werrtitle$,"Sorry, you can't use 'PROCwimp_recreatemenu' on a Font menu.",1,"",0,1,"")
+ELSE
+  num%=FNwint_numberofentries(menu$)
+  num%-=1
+  IF num%>FNwimp_menumaxsize(menu%) THEN
+    PROCwimp_error(werrtitle$,"Sorry, you are trying to recreate a menu to a larger size than was allowed for when it was created.",1,"",0,1,"")
+  ELSE
+    pos%=INSTR(menu$,"/")
+    IF pos%=1 THEN
+      title$=" "
+    ELSE
+      title$=LEFT$(menu$,pos%-1)
+    ENDIF
+    menu$=RIGHT$(menu$,LEN(menu$)-pos%)
+    width%=FNwint_titleblockandwidth(menu%,title$,1)
+    ptr%=menu%+28
+    FOR L%=1 TO num%
+      pos%=INSTR(menu$,"/")
+      IF pos%=0 THEN
+        m$=menu$
+      ELSE
+        m$=LEFT$(menu$,pos%-1)
+        menu$=RIGHT$(menu$,LEN(menu$)-pos%)
+      ENDIF
+      itemlen%=FNwint_menuitemblockandwidth(ptr%,num%,L%,m$,1)
+      IF itemlen%>width% THEN width%=itemlen%
+      ptr%+=24
+    NEXT L%
+    menu%!16=width%+16
+  ENDIF
+ENDIF
+ENDPROC
+:
+DEF PROCwimp_recreatemenuarray(menu%,array$())
+LOCAL num%,L%,ptr%,m$,itemlen%,width%,title$
+IF !(menu%-4)=-1 THEN
+  PROCwimp_error(werrtitle$,"Sorry, you can't use 'PROCwimp_recreatemenuarray' on a Font menu.",1,"",0,1,"")
+ELSE
+  num%=FNwint_getmenuarraysize(array$())
+  IF num%>FNwimp_menumaxsize(menu%) THEN
+    PROCwimp_error(werrtitle$,"Sorry, you are trying to recreate a menu to a larger size than was allowed for when it was created.",1,"",0,1,"")
+  ELSE
+    title$=array$(0)
+    IF title$="" THEN title$=" "
+    width%=FNwint_titleblockandwidth(menu%,title$,1)
+    ptr%=menu%+28
+    FOR L%=1 TO num%
+      m$=array$(L%)
+      itemlen%=FNwint_menuitemblockandwidth(ptr%,num%,L%,m$,1)
+      IF itemlen%>width% THEN width%=itemlen%
+      ptr%+=24
+    NEXT L%
+    menu%!16=width%+16
+  ENDIF
+ENDIF
+ENDPROC
+:
+DEF PROCwimp_recreatemessagemenu(menu%,messagefilehandle%,token$,title$)
+LOCAL num%,L%,ptr%,width%,itemlen%,m$
+IF !(menu%-4)=-1 THEN
+  PROCwimp_error(werrtitle$,"Sorry, you can't use 'PROCwimp_recreatemenuarray' on a Font menu.",1,"",0,1,"")
+ELSE
+  num%=FNwimp_getnumberofmessages(messagefilehandle%,token$)
+  m$=FNwimp_messlookup(messagefilehandle%,token$+"T","","")
+  IF m$="" THEN m$=FNwimp_messlookup(messagefilehandle%,token$+"t","","")
+  IF m$<>"" THEN num%-=1
+  IF title$="" THEN
+    IF m$="" THEN m$=" "
+  ELSE
+    m$=title$
+  ENDIF
+  IF num%>FNwimp_menumaxsize(menu%) THEN
+    PROCwimp_error(werrtitle$,"Sorry, you are trying to recreate a menu to a larger size than was allowed for when it was created.",1,"",0,1,"")
+  ELSE
+    width%=FNwint_titleblockandwidth(menu%,m$,1)
+    ptr%=menu%+28
+    FOR L%=1 TO num%
+      m$=FNwimp_messlookup(messagefilehandle%,token$+STR$(L%),"","")
+      itemlen%=FNwint_menuitemblockandwidth(ptr%,num%,L%,m$,1)
+      IF itemlen%>width% THEN width%=itemlen%
+      ptr%+=24
+    NEXT L%
+    menu%!16=width%+16
+  ENDIF
+ENDIF
+ENDPROC
+:
+DEF FNwimp_getnumberofmessages(messagefilehandle%,token$)
+LOCAL number%,move%,next%
+number%=0
+move%=0
+REPEAT
+  SYS "MessageTrans_EnumerateTokens",messagefilehandle%,token$+"*",wMessageout%,256,move% TO ,,next%,,move%
+  number%+=1
+UNTIL next%=0
+=number%-1
+:
+DEF FNwint_getmenuarraysize(array$())
+LOCAL count%
+count%=0
+REPEAT
+  count%+=1
+UNTIL array$(count%)="END"
+=count%-1
+:
+DEF FNwint_titleblockandwidth(menu%,title$,recreate%)
+LOCAL titlelen%,titlebuff%,oldtitlelen%,width%
+titlelen%=LEN(title$)
+IF recreate%=1 THEN
+  titlebuff%=!menu%
+  oldtitlelen%=(menu%!8)-1
+  IF titlelen%>oldtitlelen% THEN DIM titlebuff% titlelen%
+ELSE
+  DIM titlebuff% titlelen%
+ENDIF
+$titlebuff%=title$
+menu%!0=titlebuff%
+menu%!8=titlelen%+1
+width%=(titlelen%)*16
+menu%!12=&00070207
+menu%!20=44
+menu%!24=0
+=width%
+:
+DEF FNwint_menuitemblockandwidth(pointer%,number%,item%,item$,recreate%)
+LOCAL mflags%,itemlen%,itemtext%,olditemlen%
+CASE item% OF
+  WHEN 1: IF item%=number% THEN mflags%=&188 ELSE mflags%=&108
+  WHEN number%: mflags%=&88
+  OTHERWISE: mflags%=8
+ENDCASE
+!pointer%=mflags%
+pointer%!4=-1
+pointer%!8=&07000121
+itemlen%=LEN(item$)
+IF recreate%=1 THEN
+  itemtext%=pointer%!12
+  olditemlen%=pointer%!20-1
+  IF itemlen%>olditemlen% THEN DIM itemtext% itemlen%
+ELSE
+  DIM itemtext% itemlen%
+ENDIF
+$(itemtext%)=item$
+pointer%!12=itemtext%
+pointer%!16=-1
+pointer%!20=itemlen%+1
+itemlen%=(LEN(item$)+1)*16
+=itemlen%
+:
+DEF PROCwint_menuextraitems(pointer%,extra%)
+LOCAL L%,item$,itemlen%,itemtext%
+FOR L%=1 TO extra%
+  item$=" "
+  itemlen%=LEN(item$)
+  DIM itemtext% itemlen%
+  $(itemtext%)=item$
+  pointer%!12=itemtext%
+  pointer%!16=-1
+  pointer%!20=itemlen%+1
+  pointer%+=24
+NEXT
+ENDPROC
+:
+DEF FNwimp_menusize(menu%)
+LOCAL wptr%,end%,count%,flag%
+end%=FALSE
+wptr%=menu%+4
+count%=0
+REPEAT
+  wptr%+=24
+  count%+=1
+  flag%=wptr%!0
+  flag%=flag%>>7
+  IF (flag% AND 1)=1 THEN end%=TRUE
+UNTIL end%=TRUE
+=count%
+:
+DEF FNwimp_menumaxsize(menu%)
+return%=0
+IF !(menu%-4)=-1 THEN
+  PROCwimp_error(werrtitle$,"Sorry, you can't use 'FNwimp_menumaxsize' on a Font menu. 0 will be returned.",1,"",0,1,"")
+ELSE
+  return%=!(menu%-4)
+ENDIF
+=return%
+:
+DEF FNwimp_getmenutick(menu%,item%)
+LOCAL return%,wptr%
+IF !(menu%-4)=-1 THEN
+  PROCwimp_error(werrtitle$,"Sorry, you can't use 'FNwimp_getmenutick' with a Font menu. The return will be 0.",1,"",0,1,"")
+  return%=0
+ELSE
+  wptr%=(menu%+28)+(24*(item%-1))
+  return%=wptr%!0 AND 1
+ENDIF
+=return%
+:
+DEF PROCwimp_menutick(menu%,item%,state%)
+LOCAL wptr%
+IF !(menu%-4)=-1 THEN
+  PROCwimp_error(werrtitle$,"Sorry, you can't use 'PROCwimp_menutick' to alter a Font menu.",1,"",0,1,"")
+ELSE
+  IF state%<0 OR state%>2 THEN state%=1
+  wptr%=(menu%+28)+(24*(item%-1))
+  CASE state% OF
+    WHEN 0:?wptr%=?wptr% AND &FE
+    WHEN 1:?wptr%=?wptr% OR 1
+    WHEN 2:?wptr%=?wptr% EOR 1
+  ENDCASE
+ENDIF
+ENDPROC
+:
+DEF PROCwimp_menuenable(menu%,item%,state%)
+LOCAL wptr%
+IF !(menu%-4)=-1 THEN
+  PROCwimp_error(werrtitle$,"Sorry, you can't use 'PROCwimp_menuenable' to alter a Font menu.",1,"",0,1,"")
+ELSE
+  IF state%<0 OR state%>2 THEN state%=1
+  wptr%=(menu%+28)+(24*(item%-1))
+  CASE state% OF
+    WHEN 0:wptr%!8=wptr%!8 OR (1<<22)
+    WHEN 1:wptr%!8=wptr%!8 OR (1<<22)
+    wptr%!8=wptr%!8 EOR (1<<22)
+    WHEN 2:wptr%!8=wptr%!8 EOR (1<<22)
+  ENDCASE
+ENDIF
+ENDPROC
+:
+DEF FNwimp_getmenuenable(menu%,item%)
+LOCAL return%,wptr%
+return%=0
+IF !(menu%-4)=-1 THEN
+  PROCwimp_error(werrtitle$,"Sorry, you can't use 'FNwimp_getmenuenable' with a Font menu. The return will be 0.",1,"",0,1,"")
+ELSE
+  wptr%=(menu%+28)+(24*(item%-1))
+  return%=1-(wptr%!8>>22 AND 1)
+ENDIF
+=return%
+:
+DEF PROCwimp_menudottedline(menu%,item%,on%)
+LOCAL wptr%
+IF !(menu%-4)=-1 THEN
+  PROCwimp_error(werrtitle$,"Sorry, you can't use 'PROCwimp_menudottedline' to alter a Font menu.",1,"",0,1,"")
+ELSE
+  wptr%=(menu%+28)+(24*(item%-1))
+  ?wptr%=(?wptr%) OR 1<<1
+  IF on%=0 THEN
+    ?wptr%=(?wptr%) EOR 1<<1
+  ENDIF
+ENDIF
+ENDPROC
+:
+DEF FNwimp_getmenudottedline(menu%,item%)
+LOCAL return%,wptr%
+return%=0
+IF !(menu%-4)=-1 THEN
+  PROCwimp_error(werrtitle$,"Sorry, you can't use 'FNwimp_getmenudottedline' with a Font menu. The return will be 0.",1,"",0,1,"")
+ELSE
+  wptr%=(menu%+28)+(24*(item%-1))
+  return%=((wptr%!0>>1) AND 1)
+ENDIF
+=return%
+:
+DEF PROCwimp_menuitemcolour(menu%,item%,colour%,background%)
+LOCAL ptr%,mask%,offset%
+IF !(menu%-4)=-1 THEN
+  PROCwimp_error(werrtitle$,"Sorry, you can't use 'PROCwimp_menuitemcolour' to alter a Font menu.",1,"",0,1,"")
+ELSE
+  ptr%=(menu%+28)+(24*(item%-1))
+  IF background%=0 THEN
+    offset%=24
+    mask%=&F0FFFFFF
+  ELSE
+    offset%=28
+    mask%=&0FFFFFFF
+  ENDIF
+  ptr%!8=ptr%!8 AND mask%
+  ptr%!8=ptr%!8 OR (colour%<<offset%)
+ENDIF
+ENDPROC
+:
+DEF FNwimp_getmenutitle(menu%)
+LOCAL return$
+IF !(menu%-4)=-1 THEN
+  PROCwimp_error(werrtitle$,"Sorry, you can't use 'FNwimp_getmenutitle' with a Font menu. The return will be a null string.",1,"",0,1,"")
+  return$=""
+ELSE
+  return$=FNwint_string(menu%!0)
+ENDIF
+=return$
+:
+DEF PROCwimp_putmenutitle(menu%,title$)
+LOCAL titlebuff%,newtitlelen%,oldtitlelen%
+IF !(menu%-4)=-1 THEN
+  PROCwimp_error(werrtitle$,"Sorry, you can't use 'PROCwimp_putmenutitle' to alter a Font menu.",1,"",0,1,"")
+ELSE
+  IF title$="" THEN title$=" "
+  newtitlelen%=LEN(title$)
+  titlebuff%=!menu%
+  oldtitlelen%=menu%!8-1
+  IF newtitlelen%>oldtitlelen% THEN DIM titlebuff% newtitlelen%
+  !menu%=titlebuff%
+  $titlebuff%=title$
+  menu%!8=newtitlelen%+1
+  PROCwint_calcmenuwidth(menu%)
+ENDIF
+ENDPROC
+:
+DEF FNwimp_getmenutext(menu%,item%)
+LOCAL p%,return$
+IF !(menu%-4)=-1 THEN
+  PROCwimp_error(werrtitle$,"Sorry, you can't use 'FNwimp_getmenutext' with a Font menu. The return will be a null string.",1,"",0,1,"")
+  return$=""
+ELSE
+  p%=28+12+((item%-1)*24)
+  return$=FNwint_string(menu%!p%)
+ENDIF
+=return$
+:
+DEF PROCwimp_putmenutext(menu%,item%,text$)
+LOCAL p%,itemtext%,newitemlen%,olditemlen%,writable%,itemlen%
+IF !(menu%-4)=-1 THEN
+  PROCwimp_error(werrtitle$,"Sorry, you can't use 'PROCwimp_putmenutext' to alter a Font menu.",1,"",0,1,"")
+ELSE
+  newitemlen%=LEN(text$)
+  p%=28+12+((item%-1)*24)
+  itemtext%=menu%!p%
+  olditemlen%=menu%!(p%+8)-1
+  writable%=(menu%!(p%-12)>>2) AND 1
+  IF newitemlen%>olditemlen% THEN
+    itemlen%=newitemlen%
+    DIM itemtext% itemlen%
+  ELSE
+    IF writable%=1 THEN
+      itemlen%=olditemlen%
+    ELSE
+      itemlen%=newitemlen%
+    ENDIF
+  ENDIF
+  menu%!p%=itemtext%
+  $(itemtext%)=text$
+  menu%!(p%+8)=itemlen%+1
+  PROCwint_calcmenuwidth(menu%)
+ENDIF
+ENDPROC
+:
+DEF PROCwimp_putmenuitem(menu%,item%,text$)
+LOCAL num%,ptr%,submenu%,L%,M%,itemtext%,itemlen%
+IF !(menu%-4)=-1 THEN
+  PROCwimp_error(werrtitle$,"Sorry, you can't use 'PROCwimp_putmenuitem' to alter a Font menu.",1,"",0,1,"")
+ELSE
+  num%=FNwimp_menusize(menu%)
+  IF num%<FNwimp_menumaxsize(menu%) THEN
+    IF item%>(num%+1) THEN item%=num%+1
+    IF item%<1 THEN item%=1
+    ptr%=menu%+4
+    IF item%=num%+1 THEN
+      ptr%+=24*num%
+      ptr%!0=ptr%!0 OR (1<<7)
+      ptr%!0=ptr%!0 EOR (1<<7)
+      ptr%+=24
+      ptr%!0=&88
+    ELSE
+      ptr%+=24*(num%+1)
+      FOR L%=(num%+1) TO (item%+1) STEP -1
+        FOR M%=0 TO 20 STEP 4
+          ptr%!M%=ptr%!(M%-24)
+        NEXT M%
+        IF L%=2 THEN
+          ptr%!0=ptr%!0 OR (1<<8)
+          ptr%!0=ptr%!0 EOR (1<<8)
+        ENDIF
+        ptr%-=24
+      NEXT L%
+      ptr%=(menu%+4)+(24*item%)
+      IF item%=1 THEN
+        ptr%!0=&108
+      ELSE
+        ptr%!0=&8
+      ENDIF
+    ENDIF
+    ptr%!4=-1
+    ptr%!8=&07000121
+    ptr%!16=-1
+    itemlen%=LEN(text$)
+    DIM itemtext% itemlen%
+    $itemtext%=text$
+    ptr%!12=itemtext%
+    ptr%!20=itemlen%+1
+    PROCwint_calcmenuwidth(menu%)
+  ELSE
+    PROCwimp_error(werrtitle$,"Sorry, but this menu already has the maximum number of items specified when it was first created.",1,"",0,1,"")
+  ENDIF
+ENDIF
+ENDPROC
+:
+DEF PROCwimp_removemenuitem(menu%,item%)
+LOCAL num%,M%,L%,ptr%
+IF !(menu%-4)=-1 THEN
+  PROCwimp_error(werrtitle$,"Sorry, you can't use 'PROCwimp_removemenuitem' to alter a Font menu.",1,"",0,1,"")
+ELSE
+  num%=FNwimp_menusize(menu%)
+  IF num%<>1 THEN
+    IF item%<1 THEN item%=1
+    IF item%>num% THEN item%=num%
+    ptr%=menu%+4
+    IF item%=num% THEN
+      ptr%+=24*(item%-1)
+      ptr%!0=(ptr%!0 OR (1<<7))
+    ELSE
+      ptr%+=24*item%
+      FOR L%=item% TO num%-1
+        FOR M%=0 TO 20 STEP 4
+          ptr%!M%=ptr%!(M%+24)
+        NEXT M%
+        ptr%+=24
+      NEXT L%
+    ENDIF
+    menu%!28=menu%!28 OR (1<<8)
+    PROCwint_calcmenuwidth(menu%)
+  ENDIF
+ENDIF
+ENDPROC
+:
+DEF FNwimp_getmenuitem(menu%,menutext$)
+LOCAL return%,match%,menusize%,item%
+IF !(menu%-4)=-1 THEN
+  PROCwimp_error(werrtitle$,"Sorry, you can't use 'FNwimp_getmenuitem' with a Font menu. The return will be 0.",1,"",0,1,"")
+  return%=0
+ELSE
+  return%=0
+  match%=FALSE
+  menusize%=FNwimp_menusize(menu%)
+  item%=0
+  REPEAT
+    item%+=1
+    IF FNwimp_changecase(menutext$,0)=FNwimp_changecase(FNwimp_getmenutext(menu%,item%),0) THEN match%=TRUE
+  UNTIL match%=TRUE OR item%=menusize%
+  IF match%=TRUE THEN return%=item%
+ENDIF
+=return%
+:
+DEF PROCwimp_menuwrite(menu%,item%,maxlen%,border%,valid$)
+LOCAL num%,currenttext$,itemtext%
+IF !(menu%-4)=-1 THEN
+  PROCwimp_error(werrtitle$,"Sorry, you can't use 'PROCwimp_menuwrite' to alter a Font menu.",1,"",0,1,"")
+ELSE
+  num%=FNwimp_menusize(menu%)
+  IF item%>num% THEN item%=num%
+  IF item%<1 THEN item%=1
+  p%=28+12+((item%-1)*24)
+  itemtext%=menu%!p%
+  currenttext$=FNwint_string(itemtext%)
+  IF LEN(currenttext$)>maxlen% THEN maxlen%=LEN(currenttext$)
+  DIM itemtext% maxlen%
+  DIM valid% 47
+  $(valid%)="Pptr_write;Knar;"+valid$
+  menu%!p%=itemtext%
+  $(itemtext%)=currenttext$
+  menu%!(p%+4)=valid%
+  menu%!(p%+8)=maxlen%+1
+  menu%!(p%-12)=menu%!(p%-12) OR 1<<2
+  menu%?(p%-4)=menu%?(p%-4) OR 1<<2
+  IF border%=0 THEN menu%?(p%-4)=(menu%?(p%-4) EOR 1<<2)
+  PROCwint_calcmenuwidth(menu%)
+ENDIF
+ENDPROC
+:
+DEF PROCwimp_menupopup(menu%,pos%,x%,y%)
+LOCAL xpos%,ypos%,xmax%,ymax%,whan%,menuicon%,yalt%
+IF (menu% AND 1)=0 THEN
+  IF !(menu%-4)=-1 THEN wFONTMENU%=menu%
+ENDIF
+SYS "Wimp_GetPointerInfo",,wimp%
+xpos%=wimp%!0
+ypos%=wimp%!4
+whan%=wimp%!12
+wHoldwhan%=whan%
+menuicon%=wimp%!16
+IF pos%=4 AND menuicon%<0 THEN pos%=3
+PROCwint_savewimp2
+PROCuser_menuopen(menu%,wHoldwhan%,menuicon%)
+PROCwint_loadwimp2
+CASE pos% OF
+  WHEN 1
+  yalt%=FNwint_iconbardottedlinemenusize(menu%)
+  SYS "Wimp_CreateMenu",,menu%,x%-64,yalt%
+  WHEN 2    : PROCwint_centremenu(menu%)
+  WHEN 3    : SYS "Wimp_CreateMenu",,menu%,xpos%+54,ypos%+20
+  WHEN 4
+  wimp%!0=whan%
+  wimp%!4=menuicon%
+  SYS "Wimp_GetIconState",,wimp%
+  xmax%=wimp%!16
+  ymax%=wimp%!20
+  SYS "Wimp_CreateMenu",,menu%,FNwimp_worktoscreen(whan%,xmax%,0),FNwimp_worktoscreen(whan%,ymax%,1)
+  OTHERWISE : SYS "Wimp_CreateMenu",,menu%,x%,y%
+ENDCASE
+PROCwint_checksavewindow(menu%)
+wLastmenu%=menu%
+ENDPROC
+:
+DEF PROCwimp_menuclose
+SYS "Wimp_CreateMenu",,-1
+ENDPROC
+:
+DEF PROCwimp_attachsubmenu(menu%,item%,sub%)
+!(menu%+8+(item%*24))=sub%
+ENDPROC
+:
+DEF FNwimp_createfontmenu
+LOCAL size%,ind%,fontdyn%,fontmenu%,fontind%
+SYS "Font_ListFonts",,0,&80000,,0 TO ,,,size%,,ind%
+fontdyn%=FNwimp_createdynamic(size%+8,200000,0,"FontDyn")
+fontind%=FNwimp_createdynamic(ind%,100000,0,"FontInd")
+fontdyn%!0=fontind%
+fontdyn%!4=-1
+fontmenu%=fontdyn%+8
+SYS "Font_ListFonts",,fontmenu%,&80000,size%,fontind%,ind%
+=fontmenu%
+:
+DEF FNwimp_recreatefontmenu(fontmenu%)
+LOCAL oldfontdyn%,oldind%,size%,ind%,newfontdyn%,newind%,newfontmenu%
+oldind%=!(fontmenu%-8)
+oldfontdyn%=fontmenu%-8
+SYS "Font_ListFonts",,0,&80000,,0 TO ,,,size%,,ind%
+newfontdyn%=FNwimp_changedynamic(oldfontdyn%,1,size%+8)
+newind%=FNwimp_changedynamic(oldind%,1,ind%)
+newfontdyn%!0=newind%
+newfontdyn%!4=-1
+newfontmenu%=newfontdyn%+8
+SYS "Font_ListFonts",,newfontmenu%,&80000,size%,newind%,ind%
+=newfontmenu%
+:
+DEF PROCwint_calcmenuwidth(menu%)
+LOCAL title$,width%,wptr%,writable%,itemlen%,item$,flag%
+title$=FNwint_string(menu%!0)
+width%=(LEN(title$))*16
+wptr%=menu%+28
+REPEAT
+  writable%=(wptr%!0>>2) AND 1
+  IF writable%=1 THEN
+    itemlen%=(wptr%!20)-1
+  ELSE
+    item$=FNwint_string(wptr%!12)
+    itemlen%=LEN(item$)
+  ENDIF
+  IF (itemlen%*16)>width% THEN width%=(itemlen%)*16
+  flag%=!wptr%
+  flag%=(flag%>>7)
+  wptr%+=24
+UNTIL (flag% AND 1) =1
+menu%!16=width%+16
+ENDPROC
+:
+DEF FNwint_numberofentries(menu$)
+LOCAL total%,L%
+total%=1
+FOR L%=1 TO LEN(menu$)
+  IF MID$(menu$,L%,1)="/" THEN total%+=1
+NEXT L%
+=total%
+:
+DEF FNwint_decodemenuentry(menu$,item%)
+LOCAL M%,count%,omenu$
+M%=0
+count%=1
+REPEAT
+  IF MID$(menu$,M%,1)="/" THEN count%+=1
+  M%+=1
+UNTIL count%=item%
+omenu$=menu$
+omenu$=RIGHT$(omenu$,LEN(omenu$)-(M%-1))
+count%=INSTR(omenu$,"/")
+IF count%>0 THEN omenu$=LEFT$(omenu$,count%-1)
+=omenu$
+:
+DEF PROCwint_getmenuanditem(mainmenu%,RETURN menu%,RETURN item%)
+LOCAL ptr%
+IF (wimp%!4)=-1 THEN
+  menu%=mainmenu%
+  item%=(wimp%!0)+1
+ELSE
+  ptr%=0
+  menu%=mainmenu%
+  REPEAT
+    menu%=FNwint_findsubmenuptr(menu%,(wimp%!ptr%)+1)
+    ptr%+=4
+  UNTIL (wimp%!(ptr%+4))=-1
+  item%=(wimp%!ptr%)+1
+ENDIF
+ENDPROC
+:
+DEF FNwint_findsubmenuptr(menu%,item%)
+LOCAL wptr%
+wptr%=menu%+4
+wptr%+=24*item%
+=wptr%!4
+:
+DEF PROCwint_centremenu(menu%)
+LOCAL x0%,y0%,x1%,y1%,wwidth%,wheight%,swidth%,sheight%,x%,y%
+wimp%!0=menu%
+SYS "XWimp_GetWindowInfo",,(wimp% OR %1) TO ;flag%
+IF (flag% AND 1)=1 THEN
+  wwidth%=menu%!16
+  wheight%=44*(FNwimp_menusize(menu%)+1)
+ELSE
+  x0%=wimp%!4:y0%=wimp%!8
+  x1%=wimp%!12:y1%=wimp%!16
+  wwidth%=x1%-x0%
+  wheight%=y1%-y0%
+ENDIF
+swidth%=FNwimp_getscreensize(0)
+sheight%=FNwimp_getscreensize(1)
+x%=(swidth%-wwidth%)/2
+y%=((sheight%-wheight%)/2)+wheight%
+SYS "Wimp_CreateMenu",,menu%,x%,y%
+ENDPROC
+:
+DEF PROCwint_opensubmenu(submenuhandle%,x%,y%,rootmenuitem%)
+LOCAL submenunumber%,position%,parentmenuitem%
+submenunumber%=0
+REPEAT
+  submenunumber%+=1
+  position%=(32+(4*(submenunumber%)))
+UNTIL wimp%!position%=-1
+parentmenuitem%=wimp%!(32+(4*(submenunumber%-1)))
+wSubmenu%=submenuhandle%
+IF (wSubmenu% AND 1)=0 THEN
+  IF !(wSubmenu%-4)=-1 THEN wFONTMENU%=wSubmenu%
+ENDIF
+PROCuser_overmenuarrow(wLastmenu%,rootmenuitem%+1,wSubmenu%,submenunumber%,parentmenuitem%+1,x%,y%)
+IF wSubmenu% <> wSUBMENUCOLOURPICKER% THEN
+  SYS "Wimp_CreateSubMenu",,wSubmenu%,x%,y%
+  PROCwint_checksavewindow(wSubmenu%)
+  IF wSubmenu%=wFONTMENU% THEN
+    wFontmenudepth%=submenunumber%
+    wReopened%=FALSE
+  ELSE
+    wFontmenudepth%=0
+  ENDIF
+ENDIF
+ENDPROC
+:
+DEF FNwint_fontmenutree
+LOCAL Return%
+Return%=TRUE
+FOR N%=1 TO wFontmenudepth%
+  IF wMenutree%(N%) <> !(wimp%+4*(N%-1)) THEN Return%=FALSE
+NEXT
+IF !(wimp%+4*(wFontmenudepth%))=-1 THEN Return%=FALSE
+IF wLastmenu%<>wHeldmenu% THEN Return%=FALSE
+=Return%
+:
+DEF FNwint_fontmenuused
+LOCAL Return%
+Return%=TRUE
+IF !(wimp%+4*(wFontmenudepth%))=-1 THEN Return%=FALSE
+=Return%
+:
+DEF FNwimp_initmessages(file$)
+LOCAL size%,buffer%,messages%,f%,flag%
+messages%=-1
+IF wMessagefilecount%=wMaxMessagefiles% THEN
+  PROCwimp_error(werrtitle$,"There are already "+STR$(wMaxMessagefiles%)+" Messages files initiated. You will need to increase the number allowed. (See Section 2.9 of Manual)",1,"",0,1,"")
+ELSE
+  SYS "XMessageTrans_FileInfo",,file$ TO ,,size%;f%
+  flag%=(f% AND 1)
+  IF flag%=0 THEN
+    DIM buffer% size%-1
+    DIM messages% 255
+    $(messages%+16)=file$
+    SYS "MessageTrans_OpenFile",messages%,messages%+16,buffer%
+    wMessagefilecount%+=1
+    wMessagehandles%(wMessagefilecount%,0)=messages%
+    wMessagehandles%(wMessagefilecount%,1)=buffer%
+    wMessagehandles%(wMessagefilecount%,2)=size%
+    IF wMessageout%=-1 THEN DIM wMessageout% 255
+  ELSE
+    PROCwimp_error(werrtitle$,"Sorry, a file called "+file$+" cannot be found.",1,"",0,0,"Quit "+wappname$)
+    PROCwimp_closedown:END
+  ENDIF
+ENDIF
+=messages%
+:
+DEF FNwimp_reinitmessages(messhandle%,newfile$)
+LOCAL oldsize%,newsize%,buffer%,count%,f%,flag%
+count%=0
+REPEAT
+  count%+=1
+UNTIL messhandle%=wMessagehandles%(count%,0)
+buffer%=wMessagehandles%(count%,1)
+oldsize%=wMessagehandles%(count%,2)
+SYS "MessageTrans_CloseFile",messhandle%
+SYS "XMessageTrans_FileInfo",,newfile$ TO ,,newsize%;f%
+flag%=(f% AND 1)
+IF flag%=0 THEN
+  IF newsize%>oldsize% THEN
+    DIM buffer% newsize%-1
+  ENDIF
+  $(messhandle%+16)=newfile$
+  SYS "MessageTrans_OpenFile",messhandle%,messhandle%+16,buffer%
+  wMessagehandles%(count%,0)=messhandle%
+  wMessagehandles%(count%,1)=buffer%
+  IF newsize%>oldsize% THEN
+    wMessagehandles%(count%,2)=newsize%
+  ENDIF
+ELSE
+  PROCwimp_error(werrtitle$,"Sorry, a file called "+newfile$+" cannot be found.",1,"",0,0,"Quit "+wappname$)
+  PROCwimp_closedown:END
+ENDIF
+=messhandle%
+:
+DEF FNwimp_messlookup(messhandle%,token$,p1$,p2$)
+LOCAL type%,value$,f%
+IF p1$<>"" THEN
+  type%+=1
+  IF p2$<>"" THEN type%+=1
+ENDIF
+CASE type% OF
+  WHEN 0 : SYS "XMessageTrans_Lookup",messhandle%,token$,wMessageout%,256,0,0,0,0 TO ,,value$ ;f%
+  WHEN 1 : SYS "XMessageTrans_Lookup",messhandle%,token$,wMessageout%,256,p1$,0,0,0 TO ,,value$ ;f%
+  WHEN 2 : SYS "XMessageTrans_Lookup",messhandle%,token$,wMessageout%,256,p1$,p2$,0,0 TO ,,value$ ;f%
+ENDCASE
+IF (f% AND 1)=1 THEN value$=""
+=value$
+:
+DEF PROCwint_closemessagefiles
+LOCAL N%
+IF wMessagefilecount%>0 THEN
+  FOR N%=1 TO wMessagefilecount%
+    SYS "MessageTrans_CloseFile",wMessagehandles%(N%,0)
+  NEXT
+ENDIF
+ENDPROC
+:
+DEF FNwimp_countsprites(spritearea%)
+=!(spritearea%+4)
+:
+DEF FNwimp_loadsprites(spritefile$,address%,warning%)
+LOCAL filesize%
+filesize%=FNwimp_measurefile(spritefile$,warning%)
+IF filesize%>-1 THEN
+  !address%=filesize%
+  address%!8=16
+  SYS "OS_SpriteOp",&10A,address%,spritefile$
+ELSE
+  filesize%=0
+ENDIF
+=address%+filesize%
+:
+DEF PROCwimp_savesprites(savepath$,spritearea%)
+PROCwimp_hourglasson
+SYS "OS_SpriteOp",&10C,spritearea%,savepath$
+PROCwimp_hourglassoff
+ENDPROC
+:
+DEF FNwimp_getspritesize(spritename$,spritearea%,side%)
+LOCAL width%,height%,XEig%,YEig%,mode%,return%
+IF spritearea%=0 THEN
+  SYS "Wimp_SpriteOp",40,spritearea%,spritename$ TO ,,,width%,height%,,mode%
+ELSE
+  SYS "OS_SpriteOp",256+40,spritearea%,spritename$ TO ,,,width%,height%,,mode%
+ENDIF
+SYS "OS_ReadModeVariable",mode%,4 TO ,,XEig%
+SYS "OS_ReadModeVariable",mode%,5 TO ,,YEig%
+width%=width%*(2^XEig%):height%=height%*(2^YEig%)
+IF side%=0 THEN
+  return%=width%
+ELSE
+  return%=height%
+ENDIF
+=return%
+:
+DEF FNwimp_getspritename(spritearea%,spritenumber%)
+SYS "OS_SpriteOp",256+13,spritearea%,wimp%,256,spritenumber%
+=FNwint_string(wimp%)
+:
+DEF PROCwimp_rendersprite(spritename$,spritearea%,bx%,by%,minx%,miny%,maxx%,maxy%,xscalereal,yscalereal)
+LOCAL width%,height%,XEig%,YEig%,in%,xmult,ymult,xdiv,ydiv,mode%
+xscalereal=ABS(xscalereal)
+yscalereal=ABS(yscalereal)
+IF xscalereal=0 THEN xscalereal=1
+IF yscalereal=0 THEN yscalereal=1
+IF spritearea%=0 THEN
+  SYS "Wimp_SpriteOp",40,,spritename$ TO ,,,width%,height%,,mode%
+ELSE
+  SYS "OS_SpriteOp",256+40,spritearea%,spritename$ TO ,,,width%,height%,,mode%
+ENDIF
+SYS "OS_ReadModeVariable",mode%,4 TO ,,XEig%
+SYS "OS_ReadModeVariable",mode%,5 TO ,,YEig%
+SYS "OS_ReadModeVariable",mode%,9 TO ,,BPP%
+width%=width%*(2^XEig%)
+height%=height%*(2^YEig%)
+xmult=1
+ymult=1
+xdiv=1
+ydiv=1
+PROCwint_scalefactors(xscalereal,yscalereal,xmult,ymult,xdiv,ydiv)
+IF BPP%>2 THEN
+  IF spritearea%=0 THEN
+    SYS "Wimp_ReadPixTrans",&100,1,spritename$,,,,wScale%,0
+    SYS "ColourTrans_SelectTable",mode%,-1,-1,-1,wSprcoltrans%
+  ELSE
+    SYS "Wimp_ReadPixTrans",&100,spritearea%,spritename$,,,,wScale%,0
+    SYS "ColourTrans_SelectTable",spritearea%,spritename$,-1,-1,wSprcoltrans%,2
+  ENDIF
+ELSE
+  IF spritearea%=0 THEN
+    SYS "Wimp_ReadPixTrans",&100,1,spritename$,,,,wScale%,wSprcoltrans%
+  ELSE
+    SYS "Wimp_ReadPixTrans",&100,spritearea%,spritename$,,,,wScale%,wSprcoltrans%
+  ENDIF
+ENDIF
+wScale%!0=wScale%!0*xmult
+wScale%!4=wScale%!4*ymult
+wScale%!8=wScale%!8*xdiv
+wScale%!12=wScale%!12*ydiv
+in%=FNwint_checkbounds(bx%,by%,bx%+(width%*wScale%!0/wScale%!8),by%+(height%*wScale%!4/wScale%!12),minx%,miny%,maxx%,maxy%)
+IF in%=1 THEN
+  IF spritearea%=0 THEN
+    SYS "Wimp_SpriteOp",52,,spritename$,bx%,by%,8,wScale%,wSprcoltrans%
+  ELSE
+    SYS "OS_SpriteOp",256+52,spritearea%,spritename$,bx%,by%,%1000,wScale%,wSprcoltrans%
+  ENDIF
+ENDIF
+ENDPROC
+:
+DEF PROCwimp_renderwindowsprite(whan%,spritename$,spritearea%,bx%,by%,minx%,miny%,maxx%,maxy%,xscalereal,yscalereal)
+IF wPrinting%=FALSE THEN
+  bx%=FNwimp_worktoscreen(whan%,bx%,0)
+  by%=FNwimp_worktoscreen(whan%,by%,1)
+ENDIF
+PROCwimp_rendersprite(spritename$,spritearea%,bx%,by%,minx%,miny%,maxx%,maxy%,xscalereal,yscalereal)
+ENDPROC
+:
+DEF PROCwimp_pointer(pointer%,spritearea%,pointer$)
+LOCAL ptr$
+IF pointer%=0 THEN ptr$="ptr_default"
+IF pointer%=1 THEN ptr$=pointer$
+pointer%+=1
+IF spritearea%=0 THEN
+  PROCwint_pointerRMA(ptr$,pointer%)
+ELSE
+  SYS "OS_SpriteOp",256+36,spritearea%,ptr$,pointer%
+ENDIF
+ENDPROC
+:
+DEF FNwimp_getpointerposition(coord%)
+LOCAL x%,y%,b%,return%
+MOUSE x%,y%,b%
+IF coord%=0 THEN
+  return%=x%
+ELSE
+  return%=y%
+ENDIF
+=return%
+:
+DEF PROCwimp_setpointerposition(x%,y%)
+wMouseblk%?0=3
+wMouseblk%?1=x% MOD 256:wMouseblk%?2=x% DIV 256
+wMouseblk%?3=y% MOD 256:wMouseblk%?4=y% DIV 256
+SYS "OS_Word",21,wMouseblk%
+ENDPROC
+:
+DEF PROCwimp_bindpointer(whan%)
+LOCAL v%
+wMouseblk%?0=1
+v%=FNwimp_getwindowvisiblescreen(whan%,0,0)
+wMouseblk%?1=v% MOD 256:wMouseblk%?2=v% DIV 256
+v%=FNwimp_getwindowvisiblescreen(whan%,1,0)
+wMouseblk%?3=v% MOD 256:wMouseblk%?4=v% DIV 256
+v%=FNwimp_getwindowvisiblescreen(whan%,0,1)
+wMouseblk%?5=v% MOD 256:wMouseblk%?6=v% DIV 256
+v%=FNwimp_getwindowvisiblescreen(whan%,1,1)
+wMouseblk%?7=v% MOD 256:wMouseblk%?8=v% DIV 256
+SYS "OS_Word",21,wMouseblk%
+ENDPROC
+:
+DEF PROCwimp_releasepointer
+wMouseblk%?0=1
+wMouseblk%?1=0 MOD 256:wMouseblk%?2=0 DIV 256
+wMouseblk%?3=0 MOD 256:wMouseblk%?4=0 DIV 256
+wMouseblk%?5=FNwimp_getscreensize(0) MOD 256
+wMouseblk%?6=FNwimp_getscreensize(0) DIV 256
+wMouseblk%?7=FNwimp_getscreensize(1) MOD 256
+wMouseblk%?8=FNwimp_getscreensize(1) DIV 256
+SYS "OS_Word",21,wMouseblk%
+ENDPROC
+:
+DEF PROCwint_pointerRMA(ptr$,pointer%)
+SYS "Wimp_SpriteOp",36,,ptr$,pointer%
+ENDPROC
+:
+DEF PROCwimp_initdfiles
+DIM wDcapjoin% 15
+DIM wDfn%(255),wDf$(255)
+ENDPROC
+:
+DEF FNwimp_getdfilesize(dfile%,side%)
+LOCAL realdfile%,return%
+LOCAL xlow%,ylow%,xhigh%,yhigh%,x1%,y1%,x2%,y2%
+realdfile%=dfile%+4
+return%=0
+xlow%=realdfile%!24
+ylow%=realdfile%!28
+xhigh%=realdfile%!32
+yhigh%=realdfile%!36
+SYS "Font_ConverttoOS",,xlow%*72000/46080,ylow%*72000/46080 TO ,x1%,y1%
+SYS "Font_ConverttoOS",,xhigh%*72000/46080,yhigh%*72000/46080 TO ,x2%,y2%
+IF side%=0 THEN
+  return%=x2%-x1%
+ELSE
+  return%=y2%-y1%
+ENDIF
+=return%
+:
+DEF FNwimp_loaddfile(dfilepath$,address%,warning%)
+=FNwimp_loadfile(dfilepath$,address%,warning%)
+:
+DEF PROCwimp_savedfile(path$,dfile%)
+PROCwimp_savefile(path$,dfile%,&AFF)
+ENDPROC
+:
+DEF PROCwimp_renderwindow(whan%,dfile%,bx%,by%,minx%,miny%,maxx%,maxy%,xscalereal,yscalereal,origin%)
+IF wPrinting%=FALSE THEN
+  bx%=FNwimp_worktoscreen(whan%,bx%,0)
+  by%=FNwimp_worktoscreen(whan%,by%,1)
+ENDIF
+PROCwimp_render(dfile%,bx%,by%,minx%,miny%,maxx%,maxy%,xscalereal,yscalereal,origin%)
+ENDPROC
+:
+DEF PROCwimp_render(dfile%,bx%,by%,minx%,miny%,maxx%,maxy%,xscalereal,yscalereal,origin%)
+LOCAL dfilesize%,realdfile%
+dfilesize%=dfile%!0
+realdfile%=dfile%+4
+IF xscalereal=0 THEN xscalereal=1
+IF yscalereal=0 THEN yscalereal=1
+PROCwint_render360(realdfile%,dfilesize%,bx%,by%,minx%,miny%,maxx%,maxy%,xscalereal,yscalereal,origin%)
+ENDPROC
+:
+DEF PROCwint_render360(realdfile%,dfilesize%,bx%,by%,minx%,miny%,maxx%,maxy%,xscalereal,yscalereal,origin%)
+LOCAL xoffset%,yoffset%
+wDmatrix%!0=&10000*xscalereal
+wDmatrix%!4=0
+wDmatrix%!8=0
+wDmatrix%!12=&10000*yscalereal
+wDmatrix%!16=0
+wDmatrix%!20=0
+SYS "DrawFile_BBox",,realdfile%,dfilesize%,wDmatrix%,wDbbox%
+xoffset%=wDbbox%!0/256
+yoffset%=wDbbox%!4/256
+IF origin%=1 THEN
+  bx%-=xoffset%
+  by%-=yoffset%
+ENDIF
+wDmatrix%!16=bx%*256
+wDmatrix%!20=by%*256
+SYS "DrawFile_Render",0,realdfile%,dfilesize%,wDmatrix%,0
+ENDPROC
+:
+DEF FNwint_checkbounds(xlow%,ylow%,xhigh%,yhigh%,xbl%,ybl%,xtr%,ytr%)
+return%=0
+CASE TRUE OF
+  WHEN (xlow%<=xbl% AND xhigh%>=xtr% AND ylow%<=ybl% AND yhigh%>=ytr%)
+  return%=1
+  WHEN (xlow%>=xbl% AND xlow%<=xtr% AND ylow%>=ybl% AND ylow%<=ytr%)
+  return%=1
+  WHEN (xhigh%>=xbl% AND xhigh%<=xtr% AND ylow%>=ybl% AND ylow%<=ytr%)
+  return%=1
+  WHEN (xlow%>=xbl% AND xlow%<=xtr% AND yhigh%>=ybl% AND yhigh%<=ytr%)
+  return%=1
+  WHEN (xhigh%>=xbl% AND xhigh%<=xtr% AND yhigh%>=ybl% AND yhigh%<=ytr%)
+  return%=1
+  WHEN (xlow%>=xbl% AND xlow%<=xtr% AND ylow%<=ybl% AND yhigh%>=ytr%)
+  return%=1
+  WHEN (xhigh%>=xbl% AND xhigh%<=xtr% AND ylow%<=ybl% AND yhigh%>=ytr%)
+  return%=1
+  WHEN (ylow%>=ybl% AND ylow%<=ytr% AND xlow%<=xbl% AND xhigh%>=xtr%)
+  return%=1
+  WHEN (yhigh%>=ybl% AND yhigh%<=ytr% AND xlow%<=xbl% AND xhigh%>=xtr%)
+  return%=1
+  WHEN (xlow%>xbl% AND xhigh%<xtr% AND ylow%>ybl% AND yhigh%<ytr%)
+  return%=1
+ENDCASE
+=return%
+:
+DEF FNwimp_gettextsize(text$,font$,pointsizex,pointsizey,side%,scalex,scaley)
+LOCAL fhan%,f%,return%
+return%=0
+IF text$<>"" THEN
+  SYS "XFont_FindFont",,font$,pointsizex*16,pointsizey*16 TO fhan% ;f%
+  IF (f% AND 1)=1 THEN
+    return%=0
+  ELSE
+    return%=FNwimp_gettextsizeh(text$,fhan%,side%,scalex,scaley)
+    SYS "Font_LoseFont",fhan%
+  ENDIF
+ENDIF
+=return%
+:
+DEF FNwimp_gettextsizeh(text$,fhan%,side%,scalex,scaley)
+LOCAL plotcode%,minx%,miny%,maxx%,maxy%,return%
+return%=0
+IF text$<>"" AND fhan%>0 THEN
+  wTransformtext%!0=scalex*65536
+  wTransformtext%!4=0
+  wTransformtext%!8=0
+  wTransformtext%!12=scaley*65536
+  wTransformtext%!16=0
+  wTransformtext%!20=0
+  wBBox%!0=0
+  wBBox%!4=0
+  wBBox%!8=0
+  wBBox%!12=0
+  wBBox%!16=-1
+  SYS "Font_SetFont",fhan%
+  plotcode%=( 1<<18 OR 1<<8 OR 1<<6 OR 1<<5 )
+  SYS "Font_ScanString",0,text$,plotcode%,&7FFFFFFF,&7FFFFFFF,wBBox%,wTransformtext%
+  minx%=wBBox%!20
+  miny%=wBBox%!24
+  maxx%=wBBox%!28
+  maxy%=wBBox%!32
+  SYS "Font_ConverttoOS",,minx%,miny% TO ,minx%,miny%
+  SYS "Font_ConverttoOS",,maxx%,maxy% TO ,maxx%,maxy%
+  CASE side% OF
+    WHEN 0
+    return%=maxx%-minx%
+    WHEN 1
+    return%=maxy%-miny%
+  ENDCASE
+ENDIF
+=return%
+:
+DEF FNwimp_getfont(font$,pointsizex,pointsizey)
+LOCAL fhan%,f%,return%
+SYS "XFont_FindFont",,font$,pointsizex*16,pointsizey*16 TO fhan% ;f%
+IF (f% AND 1)=1 THEN
+  return%=0
+ELSE
+  return%=fhan%
+  wFontbuf%?fhan%+=1
+ENDIF
+=return%
+:
+DEF PROCwimp_losefont(fhan%)
+SYS "Font_LoseFont",fhan%
+wFontbuf%?fhan%-=1
+ENDPROC
+:
+DEF FNwimp_fontcolour(fr%,fg%,fb%,br%,bg%,bb%)
+=CHR$(19)+CHR$(br%)+CHR$(bg%)+CHR$(bb%)+CHR$(fr%)+CHR$(fg%)+CHR$(fb%)+CHR$(14)
+:
+DEF FNwimp_fontunderline(on%)
+LOCAL return$
+return$=""
+IF on%=0 THEN
+  return$=CHR$25+CHR$0+CHR$0
+ELSE
+  return$=CHR$25+CHR$240+CHR$10
+ENDIF
+=return$
+:
+DEF FNwimp_fontchangeh(fhan%)
+=CHR$26+CHR$fhan%
+:
+DEF PROCwimp_plotwindowtext(whan%,text$,font$,pointsizex,pointsizey,align%,x%,y%,fr%,fg%,fb%,br%,bg%,bb%,minx%,miny%,maxx%,maxy%,scalex,scaley,blending%)
+LOCAL h%,in%,fhan%,f%,width%
+IF wPrinting%=FALSE THEN
+  x%=FNwimp_worktoscreen(whan%,x%,0)
+  y%=FNwimp_worktoscreen(whan%,y%,1)
+ENDIF
+SYS "XFont_FindFont",,font$,pointsizex*16,pointsizey*16 TO fhan% ;f%
+IF (f% AND 1)=1 THEN
+  SYS "Font_FindFont",,"Trinity.Medium",pointsizex*16,pointsizey*16,0,0 TO fhan%
+ENDIF
+h%=FNwimp_gettextsizeh(text$,fhan%,1,scalex,scaley)
+CASE align% OF
+  WHEN 1
+  width%=FNwimp_gettextsizeh(text$,fhan%,0,scalex,scaley)
+  x%=x%-(width%/2)
+  WHEN 2
+  width%=FNwimp_gettextsizeh(text$,fhan%,0,scalex,scaley)
+  x%=x%-width%
+ENDCASE
+in%=FNwint_checkbounds(x%,y%-0.25*h%,1E6,y%+h%,minx%,miny%,maxx%,maxy%)
+IF in%=1 THEN
+  PROCwimp_plottexth(text$,fhan%,0,x%,y%,fr%,fg%,fb%,br%,bg%,bb%,scalex,scaley,blending%)
+ENDIF
+SYS "Font_LoseFont",fhan%
+ENDPROC
+:
+DEF PROCwimp_plotwindowtexth(whan%,text$,fhan%,align%,x%,y%,fr%,fg%,fb%,br%,bg%,bb%,minx%,miny%,maxx%,maxy%,scalex,scaley,blending%)
+LOCAL h%,in%,width%
+IF wPrinting%=FALSE THEN
+  x%=FNwimp_worktoscreen(whan%,x%,0)
+  y%=FNwimp_worktoscreen(whan%,y%,1)
+ENDIF
+h%=FNwimp_gettextsizeh(text$,fhan%,1,scalex,scaley)
+CASE align% OF
+  WHEN 1
+  width%=FNwimp_gettextsizeh(text$,fhan%,0,scalex,scaley)
+  x%=x%-(width%/2)
+  WHEN 2
+  width%=FNwimp_gettextsizeh(text$,fhan%,0,scalex,scaley)
+  x%=x%-width%
+ENDCASE
+in%=FNwint_checkbounds(x%,y%-0.25*h%,1E6,y%+h%,minx%,miny%,maxx%,maxy%)
+IF in%=1 THEN
+  PROCwimp_plottexth(text$,fhan%,0,x%,y%,fr%,fg%,fb%,br%,bg%,bb%,scalex,scaley,blending%)
+ENDIF
+ENDPROC
+:
+DEF PROCwimp_plottext(text$,font$,pointsizex,pointsizey,align%,x%,y%,fr%,fg%,fb%,br%,bg%,bb%,scalex,scaley,blending%)
+LOCAL fhan%,f%,width%
+SYS "XFont_FindFont",,font$,pointsizex*16,pointsizey*16 TO fhan% ;f%
+IF (f% AND 1)=1 THEN
+  SYS "Font_FindFont",,"Trinity.Medium",pointsizex*16,pointsizey*16,0,0 TO fhan%
+ENDIF
+CASE align% OF
+  WHEN 1
+  width%=FNwimp_gettextsizeh(text$,fhan%,0,scalex,scaley)
+  x%=x%-(width%/2)
+  WHEN 2
+  width%=FNwimp_gettextsizeh(text$,fhan%,0,scalex,scaley)
+  x%=x%-width%
+ENDCASE
+PROCwimp_plottexth(text$,fhan%,0,x%,y%,fr%,fg%,fb%,br%,bg%,bb%,scalex,scaley,blending%)
+SYS "Font_LoseFont",fhan%
+ENDPROC
+:
+DEF PROCwimp_plottexth(text$,fhan%,align%,x%,y%,fr%,fg%,fb%,br%,bg%,bb%,scalex,scaley,blending%)
+LOCAL width%
+CASE align% OF
+  WHEN 1
+  width%=FNwimp_gettextsizeh(text$,fhan%,0,scalex,scaley)
+  x%=x%-(width%/2)
+  WHEN 2
+  width%=FNwimp_gettextsizeh(text$,fhan%,0,scalex,scaley)
+  x%=x%-width%
+ENDCASE
+SYS "ColourTrans_SetFontColours",fhan%,(bb%<<24)+(bg%<<16)+(br%<<8),(fb%<<24)+(fg%<<16)+(fr%<<8),14
+wTransformtext%!0=scalex*65536
+wTransformtext%!4=0
+wTransformtext%!8=0
+wTransformtext%!12=scaley*65536
+wTransformtext%!16=0
+wTransformtext%!20=0
+SYS "Font_Converttopoints",,x%,y% TO ,x%,y%
+SYS "Font_CacheAddr" TO fontmanager%
+IF (fontmanager% < 335) OR (blending%=0) THEN
+  plottype%=(1<<6)+(1<<9)
+ELSE
+  plottype%=(1<<6)+(1<<9)+(1<<11)
+ENDIF
+SYS "Font_Paint",fhan%,text$,plottype%,x%,y%,,wTransformtext%
+ENDPROC
+:
+DEF PROCwimp_deskplotwindowtext(whan%,text$,align%,x%,y%,fr%,fg%,fb%,br%,bg%,bb%,minx%,miny%,maxx%,maxy%)
+LOCAL in%
+IF wPrinting%=FALSE THEN
+  x%=FNwimp_worktoscreen(whan%,x%,0)
+  y%=FNwimp_worktoscreen(whan%,y%,1)
+ENDIF
+in%=FNwint_checkbounds(x%,y%,1E6,y%+30,minx%,miny%,maxx%,maxy%)
+IF in%=1 THEN
+  PROCwimp_deskplottext(text$,align%,x%,y%,fr%,fg%,fb%,br%,bg%,bb%)
+ENDIF
+ENDPROC
+:
+DEF PROCwimp_deskplottext(text$,align%,x%,y%,fr%,fg%,fb%,br%,bg%,bb%)
+LOCAL fore%,back%,width%
+fore%=(fr%<<8)+(fg%<<16)+(fb%<<24)
+back%=(br%<<8)+(bg%<<16)+(bb%<<24)
+SYS "Wimp_TextOp",0,fore%,back%
+CASE align% OF
+  WHEN 1
+  SYS "Wimp_TextOp",1,text$,0 TO width%
+  SYS "Wimp_TextOp",2,text$,,,x%-(width%/2),y%
+  WHEN 2
+  SYS "Wimp_TextOp",2+(1<<31),text$,,,x%,y%
+  OTHERWISE
+  SYS "Wimp_TextOp",2,text$,,,x%,y%
+ENDCASE
+ENDPROC
+:
+DEF PROCwimp_print(user%,whan%,firstpage%,lastpage%,perpage%,interval%,copies%,orient%,xscale,yscale,order%,invert%)
+LOCAL file$,width%,height%,OSwidth%,OSheight%,olastpage%
+LOCAL anglereal,scalereal,p%,step%
+LOCAL wprnt%,prevprnt%,feat%,fontdec%
+LOCAL cancel%,copy%,page%,totpages%,pagepos%,L%
+LOCAL scalefactor1,scalefactor2,scalefactor3,scalefactor4,w%,h%
+LOCAL more%,cpage%
+IF firstpage%<1 THEN firstpage%=1
+IF perpage%<1 THEN perpage%=1
+IF perpage%>4 THEN perpage%=4
+IF perpage%=3 THEN perpage%=2
+IF interval%<1 THEN interval%=1
+IF copies%<1 THEN copies%=1
+IF xscale<0.05 THEN xscale=0.05
+IF yscale<0.05 THEN yscale=0.05
+IF order%<>0 THEN order%=1
+IF invert%<>0 THEN invert%=1
+PROCwimp_singlepoll
+LOCAL ERROR
+ON ERROR LOCAL:RESTORE ERROR:PROCwint_printerror(wprnt%,REPORT$,ERL):ENDPROC
+file$="printer:"
+SYS "PDriver_PageSize" TO ,width%,height%
+SYS "Font_ConverttoOS",,width%,height% TO ,OSwidth%,OSheight%
+olastpage%=lastpage%
+IF perpage%=4 THEN
+  IF orient%=0 THEN
+    IF invert%=0 THEN
+      anglereal=0
+    ELSE
+      anglereal=180
+    ENDIF
+  ELSE
+    IF invert%=0 THEN
+      anglereal=90
+    ELSE
+      anglereal=270
+    ENDIF
+  ENDIF
+  scalereal=50/100
+  p%=(lastpage%-firstpage%+1) MOD 4
+  IF p%<>0 THEN lastpage%+=4-p%
+  step%=4
+ENDIF
+IF perpage%=2 THEN
+  IF orient%=0 THEN
+    IF invert%=0 THEN
+      anglereal=90
+    ELSE
+      anglereal=270
+    ENDIF
+  ELSE
+    IF invert%=0 THEN
+      anglereal=0
+    ELSE
+      anglereal=180
+    ENDIF
+  ENDIF
+  scalereal=FNwimp_getpapersize(0,0)/FNwimp_getpapersize(1,0)
+  IF ((firstpage%-lastpage%+1) MOD 2)<>0 THEN lastpage%+=1
+  step%=2
+ENDIF
+IF perpage%=1 THEN
+  IF orient%=0 THEN
+    IF invert%=0 THEN
+      anglereal=0
+    ELSE
+      anglereal=180
+    ENDIF
+  ELSE
+    IF invert%=0 THEN
+      anglereal=90
+    ELSE
+      anglereal=270
+    ENDIF
+  ENDIF
+  scalereal=1
+  step%=1
+ENDIF
+wprnt%=OPENOUT(file$)
+SYS "PDriver_SelectJob",wprnt% TO prevprnt%
+SYS "PDriver_Info" TO ,,,feat%
+fontdec%=(feat%>>29 AND 1)
+IF fontdec% THEN
+  PROCuser_declarefonts
+  SYS "PDriver_DeclareFont",0,0,0
+ENDIF
+cancel%=0
+FOR copy%=1 TO copies%
+  FOR page%=firstpage% TO lastpage% STEP step%*interval%
+    SYS "Hourglass_On"
+    IF cancel%=0 THEN
+      SYS "PDriver_SelectJob",prevprnt%
+      wPrinting%=FALSE
+      IF perpage%=1 THEN
+        totpages%=(lastpage%-firstpage%+1)*copies%
+        pagepos%=page%+((copy%-1)*(lastpage%-firstpage%+1))-firstpage%+1
+        cancel%=FNuser_printing(copy%,page%,totpages%,pagepos%)
+        PROCwimp_singlepoll
+      ELSE
+        FOR L%=1 TO perpage%
+          IF cancel%=0 THEN
+            IF page%+(L%-1)<=olastpage% THEN
+              totpages%=(olastpage%-firstpage%+1)*copies%
+              pagepos%=page%+(L%-1)+((copy%-1)*(olastpage%-firstpage%+1))-firstpage%+1
+              cancel%=FNuser_printing(copy%,page%,totpages%,pagepos%)
+              PROCwimp_singlepoll
+            ENDIF
+          ENDIF
+        NEXT L%
+      ENDIF
+      wPrinting%=TRUE
+      SYS "PDriver_SelectJob",wprnt% TO prevprnt%
+    ENDIF
+    scalefactor1=(scalereal*(COSRADanglereal))*2^16
+    scalefactor2=(scalereal*(SINRADanglereal))*2^16
+    scalefactor3=(scalereal*(-SINRADanglereal))*2^16
+    scalefactor4=(scalereal*(COSRADanglereal))*2^16
+    IF cancel%=0 THEN
+      IF perpage%=1 THEN
+        IF orient%=0 THEN
+          wPrintblock%!0=0
+          wPrintblock%!4=0
+          wPrintblock%!8=OSwidth%
+          wPrintblock%!12=OSheight%
+          wPrintblock%!16=xscale*scalefactor1
+          wPrintblock%!20=yscale*scalefactor2
+          wPrintblock%!24=xscale*scalefactor3
+          wPrintblock%!28=yscale*scalefactor4
+          IF invert%=0 THEN
+            wPrintblock%!32=0
+            wPrintblock%!36=0
+          ELSE
+            wPrintblock%!32=width%
+            wPrintblock%!36=height%
+          ENDIF
+        ELSE
+          wPrintblock%!0=0
+          wPrintblock%!4=0
+          wPrintblock%!8=OSheight%
+          wPrintblock%!12=OSwidth%
+          wPrintblock%!16=yscale*scalefactor1
+          wPrintblock%!20=xscale*scalefactor2
+          wPrintblock%!24=yscale*scalefactor3
+          wPrintblock%!28=xscale*scalefactor4
+          IF invert%=0 THEN
+            wPrintblock%!32=width%
+            wPrintblock%!36=0
+          ELSE
+            wPrintblock%!32=0
+            wPrintblock%!36=height%
+          ENDIF
+        ENDIF
+        SYS "PDriver_GiveRectangle",page%,wPrintblock%,wPrintblock%+16,wPrintblock%+32,&FFFFFF00
+      ENDIF
+      IF perpage%=2 THEN
+        FOR L%=1 TO 2
+          IF page%+(L%-1)<=olastpage% THEN
+            w%=width%-(width%-(height%*scalereal))
+            h%=height%/2
+            IF orient%=0 THEN
+              wPrintblock%!0=0
+              wPrintblock%!4=0
+              wPrintblock%!8=OSwidth%
+              wPrintblock%!12=OSheight%
+              wPrintblock%!16=yscale*scalefactor1
+              wPrintblock%!20=xscale*scalefactor2
+              wPrintblock%!24=yscale*scalefactor3
+              wPrintblock%!28=xscale*scalefactor4
+              CASE L% OF
+                WHEN 1
+                IF invert%=0 THEN
+                  IF order%=0 THEN
+                    wPrintblock%!32=w%
+                    wPrintblock%!36=0
+                  ELSE
+                    wPrintblock%!32=w%
+                    wPrintblock%!36=h%
+                  ENDIF
+                ELSE
+                  IF order%=0 THEN
+                    wPrintblock%!32=0
+                    wPrintblock%!36=h%
+                  ELSE
+                    wPrintblock%!32=0
+                    wPrintblock%!36=2*h%
+                  ENDIF
+                ENDIF
+                WHEN 2
+                IF invert%=0 THEN
+                  IF order%=0 THEN
+                    wPrintblock%!32=w%
+                    wPrintblock%!36=h%
+                  ELSE
+                    wPrintblock%!32=w%
+                    wPrintblock%!36=0
+                  ENDIF
+                ELSE
+                  IF order%=0 THEN
+                    wPrintblock%!32=0
+                    wPrintblock%!36=2*h%
+                  ELSE
+                    wPrintblock%!32=0
+                    wPrintblock%!36=h%
+                  ENDIF
+                ENDIF
+              ENDCASE
+            ELSE
+              wPrintblock%!0=0
+              wPrintblock%!4=0
+              wPrintblock%!8=OSheight%
+              wPrintblock%!12=OSwidth%
+              wPrintblock%!16=xscale*scalefactor1
+              wPrintblock%!20=yscale*scalefactor2
+              wPrintblock%!24=xscale*scalefactor3
+              wPrintblock%!28=yscale*scalefactor4
+              CASE L% OF
+                WHEN 1
+                IF invert%=0 THEN
+                  IF order%=0 THEN
+                    wPrintblock%!32=0
+                    wPrintblock%!36=0
+                  ELSE
+                    wPrintblock%!32=0
+                    wPrintblock%!36=h%
+                  ENDIF
+                ELSE
+                  IF order%=0 THEN
+                    wPrintblock%!32=w%
+                    wPrintblock%!36=h%
+                  ELSE
+                    wPrintblock%!32=w%
+                    wPrintblock%!36=2*h%
+                  ENDIF
+                ENDIF
+                WHEN 2
+                IF invert%=0 THEN
+                  IF order%=0 THEN
+                    wPrintblock%!32=0
+                    wPrintblock%!36=h%
+                  ELSE
+                    wPrintblock%!32=0
+                    wPrintblock%!36=0
+                  ENDIF
+                ELSE
+                  IF order%=0 THEN
+                    wPrintblock%!32=w%
+                    wPrintblock%!36=2*h%
+                  ELSE
+                    wPrintblock%!32=w%
+                    wPrintblock%!36=h%
+                  ENDIF
+                ENDIF
+              ENDCASE
+            ENDIF
+            SYS "PDriver_GiveRectangle",page%+(L%-1),wPrintblock%,wPrintblock%+16,wPrintblock%+32,&FFFFFF00
+          ENDIF
+        NEXT L%
+      ENDIF
+      IF perpage%=4 THEN
+        FOR L%=1 TO 4
+          IF page%+(L%-1)<=olastpage% THEN
+            IF orient%=0 THEN
+              wPrintblock%!0=0
+              wPrintblock%!4=0
+              wPrintblock%!8=OSwidth%
+              wPrintblock%!12=OSheight%
+              wPrintblock%!16=xscale*scalefactor1
+              wPrintblock%!20=yscale*scalefactor2
+              wPrintblock%!24=xscale*scalefactor3
+              wPrintblock%!28=yscale*scalefactor4
+              CASE L% OF
+                WHEN 1
+                IF invert%=0 THEN
+                  IF order%=0 THEN
+                    wPrintblock%!32=0
+                    wPrintblock%!36=height%/2
+                  ELSE
+                    wPrintblock%!32=0
+                    wPrintblock%!36=0
+                  ENDIF
+                ELSE
+                  IF order%=0 THEN
+                    wPrintblock%!32=width%/2
+                    wPrintblock%!36=height%
+                  ELSE
+                    wPrintblock%!32=width%/2
+                    wPrintblock%!36=height%/2
+                  ENDIF
+                ENDIF
+                WHEN 2
+                IF invert%=0 THEN
+                  IF order%=0 THEN
+                    wPrintblock%!32=width%/2
+                    wPrintblock%!36=height%/2
+                  ELSE
+                    wPrintblock%!32=0
+                    wPrintblock%!36=height%/2
+                  ENDIF
+                ELSE
+                  IF order%=0 THEN
+                    wPrintblock%!32=width%
+                    wPrintblock%!36=height%
+                  ELSE
+                    wPrintblock%!32=width%/2
+                    wPrintblock%!36=height%
+                  ENDIF
+                ENDIF
+                WHEN 3
+                IF invert%=0 THEN
+                  IF order%=0 THEN
+                    wPrintblock%!32=0
+                    wPrintblock%!36=0
+                  ELSE
+                    wPrintblock%!32=width%/2
+                    wPrintblock%!36=0
+                  ENDIF
+                ELSE
+                  IF order%=0 THEN
+                    wPrintblock%!32=width%/2
+                    wPrintblock%!36=height%/2
+                  ELSE
+                    wPrintblock%!32=width%
+                    wPrintblock%!36=height%/2
+                  ENDIF
+                ENDIF
+                WHEN 4
+                IF invert%=0 THEN
+                  IF order%=0 THEN
+                    wPrintblock%!32=width%/2
+                    wPrintblock%!36=0
+                  ELSE
+                    wPrintblock%!32=width%/2
+                    wPrintblock%!36=height%/2
+                  ENDIF
+                ELSE
+                  IF order%=0 THEN
+                    wPrintblock%!32=width%
+                    wPrintblock%!36=height%/2
+                  ELSE
+                    wPrintblock%!32=width%
+                    wPrintblock%!36=height%
+                  ENDIF
+                ENDIF
+              ENDCASE
+            ELSE
+              wPrintblock%!0=0
+              wPrintblock%!4=0
+              wPrintblock%!8=OSheight%
+              wPrintblock%!12=OSwidth%
+              wPrintblock%!16=yscale*scalefactor1
+              wPrintblock%!20=xscale*scalefactor2
+              wPrintblock%!24=yscale*scalefactor3
+              wPrintblock%!28=xscale*scalefactor4
+              CASE L% OF
+                WHEN 1
+                IF invert%=0 THEN
+                  IF order%=0 THEN
+                    wPrintblock%!32=width%/2
+                    wPrintblock%!36=height%/2
+                  ELSE
+                    wPrintblock%!32=width%/2
+                    wPrintblock%!36=0
+                  ENDIF
+                ELSE
+                  IF order%=0 THEN
+                    wPrintblock%!32=0
+                    wPrintblock%!36=height%
+                  ELSE
+                    wPrintblock%!32=0
+                    wPrintblock%!36=height%/2
+                  ENDIF
+                ENDIF
+                WHEN 2
+                IF invert%=0 THEN
+                  IF order%=0 THEN
+                    wPrintblock%!32=width%
+                    wPrintblock%!36=height%/2
+                  ELSE
+                    wPrintblock%!32=width%/2
+                    wPrintblock%!36=height%/2
+                  ENDIF
+                ELSE
+                  IF order%=0 THEN
+                    wPrintblock%!32=width%/2
+                    wPrintblock%!36=height%
+                  ELSE
+                    wPrintblock%!32=0
+                    wPrintblock%!36=height%
+                  ENDIF
+                ENDIF
+                WHEN 3
+                IF invert%=0 THEN
+                  IF order%=0 THEN
+                    wPrintblock%!32=width%/2
+                    wPrintblock%!36=0
+                  ELSE
+                    wPrintblock%!32=width%
+                    wPrintblock%!36=0
+                  ENDIF
+                ELSE
+                  IF order%=0 THEN
+                    wPrintblock%!32=0
+                    wPrintblock%!36=height%/2
+                  ELSE
+                    wPrintblock%!32=width%/2
+                    wPrintblock%!36=height%/2
+                  ENDIF
+                ENDIF
+                WHEN 4
+                IF invert%=0 THEN
+                  IF order%=0 THEN
+                    wPrintblock%!32=width%
+                    wPrintblock%!36=0
+                  ELSE
+                    wPrintblock%!32=width%
+                    wPrintblock%!36=height%/2
+                  ENDIF
+                ELSE
+                  IF order%=0 THEN
+                    wPrintblock%!32=width%/2
+                    wPrintblock%!36=height%/2
+                  ELSE
+                    wPrintblock%!32=width%/2
+                    wPrintblock%!36=height%
+                  ENDIF
+                ENDIF
+              ENDCASE
+            ENDIF
+            SYS "PDriver_GiveRectangle",page%+(L%-1),wPrintblock%,wPrintblock%+16,wPrintblock%+32,&FFFFFF00
+          ENDIF
+        NEXT L%
+      ENDIF
+      wPrinting%=TRUE
+      SYS "PDriver_DrawPage",1,wPrintblock%,0,0 TO more%,,cpage%
+      IF more%<>0 THEN
+        REPEAT
+          IF user%=1 THEN
+            PROCuser_print(wPrintblock%!0,wPrintblock%!4,wPrintblock%!8,wPrintblock%!12,cpage%)
+          ELSE
+            PROCuser_redraw(whan%,wPrintblock%!0,wPrintblock%!4,wPrintblock%!8,wPrintblock%!12,wPrinting%,cpage%)
+          ENDIF
+          SYS "PDriver_GetRectangle",,wPrintblock% TO more%,,cpage%
+        UNTIL more%=0
+      ENDIF
+    ENDIF
+    SYS "Hourglass_Off"
+  NEXT page%
+NEXT copy%
+wPrinting%=FALSE
+SYS "PDriver_EndJob",wprnt%
+CLOSE#wprnt%
+RESTORE ERROR
+SYS "PDriver_SelectJob",prevprnt%
+ENDPROC
+:
+DEF FNwimp_pdriverpresent
+LOCAL present%
+present%=TRUE
+IF FNwimp_getpdrivername="" THEN present%=FALSE
+=present%
+:
+DEF FNwimp_getpdrivername
+LOCAL name%
+LOCAL ERROR
+ON ERROR LOCAL =""
+SYS "PDriver_Info" TO ,,,,name%
+=FNwint_string(name%)
+:
+DEF FNwimp_worktopaper(coord%,side%,orient%)
+LOCAL w%,h%,offset%,return%
+IF side%=0 THEN
+  return%=coord%
+ELSE
+  w%=FNwimp_getpapersize(0,0)
+  h%=FNwimp_getpapersize(1,0)
+  IF orient%=0 THEN offset%=0 ELSE offset%=h%-w%
+  return%=h%+coord%-offset%
+ENDIF
+=return%
+:
+DEF FNwimp_papertowork(coord%,side%,orient%)
+LOCAL w%,h%,offset%,return%
+IF side%=0 THEN
+  return%=coord%
+ELSE
+  w%=FNwimp_getpapersize(0,0)
+  h%=FNwimp_getpapersize(1,0)
+  IF orient%=0 THEN offset%=0 ELSE offset%=h%-w%
+  return%= -(h%-coord%)+offset%
+ENDIF
+=return%
+:
+DEF FNwimp_screentopaper(whan%,coord%,side%,orient%)
+coord%=FNwimp_screentowork(whan%,coord%,side%)
+=FNwimp_worktopaper(coord%,side%,orient%)
+:
+DEF FNwimp_papertoscreen(whan%,coord%,side%,orient%)
+coord%=FNwimp_papertowork(coord%,side%,orient%)
+=FNwimp_worktoscreen(whan%,coord%,side%)
+:
+DEF FNwimp_getpapersize(side%,type%)
+LOCAL left%,bottom%,right%,top%,width%,height%,val%
+LOCAL OSleft%,OSbottom%,OSright%,OStop%,OSwidth%,OSheight%
+SYS "PDriver_PageSize" TO ,width%,height%,left%,bottom%,right%,top%
+SYS "Font_ConverttoOS",,left%,bottom% TO ,OSleft%,OSbottom%
+SYS "Font_ConverttoOS",,right%,top% TO ,OSright%,OStop%
+SYS "Font_ConverttoOS",,width%,height% TO ,OSwidth%,OSheight%
+val%=0
+IF side%=0 THEN
+  IF type%=0 THEN val%=OSwidth%
+  IF type%=1 THEN val%=OSleft%
+  IF type%=2 THEN val%=OSright%-OSleft%
+  IF type%=3 THEN val%=OSright%
+ELSE
+  IF type%=0 THEN val%=OSheight%
+  IF type%=1 THEN val%=OSbottom%
+  IF type%=2 THEN val%=OStop%-OSbottom%
+  IF type%=3 THEN val%=OStop%
+ENDIF
+=val%
+:
+DEF PROCwimp_declarefont(font$)
+SYS "PDriver_DeclareFont",0,font$,0
+ENDPROC
+:
+DEF PROCwimp_declarefonth(fhan%)
+SYS "PDriver_DeclareFont",fhan%,,0
+ENDPROC
+:
+DEF PROCwimp_declaredfilefonts(dfile%)
+LOCAL top%,len%,obj%,ptr%,font$,c%,OBJDONE%
+realdfile%=dfile%+4
+fileend%=realdfile%+dfile%!0
+SYS "DrawFile_DeclareFonts",,realdfile%,dfile%!0
+ENDPROC
+:
+DEF PROCwint_printerror(wprnt%,e$,l%)
+wPrinting%=FALSE
+SYS "XPDriver_AbortJob",wprnt%
+CLOSE#wprnt%
+SYS "Hourglass_Off"
+IF l%=0 THEN
+  PROCwimp_error(werrtitle$,e$+" when trying to print.",1,"",0,1,"")
+ELSE
+  PROCwimp_error(werrtitle$,e$+" at line "+STR$l%+" when trying to print.",1,"",0,1,"")
+ENDIF
+ENDPROC
+:
+DEF FNwimp_createdynamic(size%,maxsize%,drag%,name$)
+LOCAL dnum%,darea%
+darea%=0
+IF wDynamics%<wMaxdynamicareas% THEN
+  IF drag%<>0 THEN drag%=1
+  IF maxsize%<-1 THEN maxsize%=-1
+  IF (maxsize%>-1) AND (maxsize%<size%) THEN maxsize%=size%
+  $wTempblk%=name$
+  SYS "XOS_DynamicArea",0,-1,size%,-1,%000110000+((1-drag%)<<7),maxsize%,0,0,wTempblk% TO ,dnum%,,darea%
+  wDynamics%+=1
+  wDynamicarea%(wDynamics%,0)=darea%
+  wDynamicarea%(wDynamics%,1)=dnum%
+ELSE
+  PROCwimp_error(werrtitle$,"Sorry but, with this version of Dr Wimp, a maximum of "+STR$(wMaxdynamicareas%)+" Dynamic areas created with this wimp-function can exist. See Manual Section 2.27 for solution.",1,"",0,1,"")
+ENDIF
+=darea%
+:
+DEF FNwimp_changedynamic(darea%,absolute%,size%)
+LOCAL f%,csize%,L%,dnum%,pos%,exists%,return%
+IF absolute%<>0 THEN absolute%=1
+exists%=FALSE
+FOR L%=1 TO wDynamics%
+  IF wDynamicarea%(L%,0)=darea% THEN
+    dnum%=wDynamicarea%(L%,1)
+    pos%=L%
+    exists%=TRUE
+  ENDIF
+NEXT L%
+IF exists%=TRUE AND darea%<>0 THEN
+  f%=0
+  IF absolute%=1 THEN
+    csize%=FNwimp_measuredynamic(darea%)
+    size%-=csize%
+  ENDIF
+  SYS "XOS_ChangeDynamicArea",dnum%,size% TO ;f%
+  IF (f% AND 1)=1 THEN
+    PROCwint_cleardynamicareas
+    PROCwimp_error(werrtitle$,"Can't change that area by required amount.",1,"",0,0,"Quit "+wappname$):PROCwimp_closedown:END
+  ELSE
+    wDynamicarea%(pos%,0)=darea%
+    return%=darea%
+  ENDIF
+ELSE
+  PROCwint_cleardynamicareas
+  PROCwimp_error(werrtitle$,"Can't find existing Dynamic area with that handle.",1,"",0,0,"Quit "+wappname$):PROCwimp_closedown:END
+ENDIF
+=return%
+:
+DEF FNwimp_measuredynamic(darea%)
+LOCAL exists%,L%,dasize%,pos%,dnum%,csize%,maxsize%
+pos%=0
+dasize%=0
+exists%=FALSE
+FOR L%=1 TO wDynamics%
+  IF wDynamicarea%(L%,0)=darea% THEN
+    dnum%=wDynamicarea%(L%,1)
+    pos%=L%
+    exists%=TRUE
+  ENDIF
+NEXT L%
+IF exists%=TRUE AND darea%<>0 THEN
+  dnum%=wDynamicarea%(pos%,1)
+  SYS "OS_DynamicArea",2,dnum% TO ,,dasize%
+ELSE
+  PROCwint_cleardynamicareas
+  PROCwimp_error(werrtitle$,"Can't find existing Dynamic area with that handle.",1,"",0,0,"Quit "+wappname$):PROCwimp_closedown:END
+ENDIF
+=dasize%
+:
+DEF PROCwimp_deletedynamic(darea%)
+LOCAL L%,dnum%,exists%,pos%
+exists%=FALSE
+pos%=-1
+FOR L%=1 TO wDynamics%
+  IF wDynamicarea%(L%,0)=darea% THEN
+    dnum%=wDynamicarea%(L%,1)
+    exists%=TRUE
+    pos%=L%
+  ENDIF
+NEXT L%
+IF exists%=TRUE AND darea%<>0 THEN
+  SYS "OS_DynamicArea",1,dnum%
+  IF pos%<wDynamics% THEN
+    FOR L%=pos% TO wDynamics%
+      wDynamicarea%(L%,0)=wDynamicarea%(L%+1,0)
+      wDynamicarea%(L%,1)=wDynamicarea%(L%+1,1)
+    NEXT
+  ENDIF
+  wDynamicarea%(wDynamics%,0)=0
+  wDynamicarea%(wDynamics%,1)=0
+  wDynamics%-=1
+ENDIF
+ENDPROC
+:
+DEF PROCwint_cleardynamicareas
+LOCAL L%
+IF wDynamics%>0 THEN
+  FOR L%=wDynamics% TO 1 STEP -1
+    IF wDynamicarea%(L%,0)>0 THEN PROCwimp_deletedynamic(wDynamicarea%(L%,0))
+  NEXT
+ENDIF
+ENDPROC
+:
+DEF FNwimp_getfreeRAM
+LOCAL free%
+free%=0
+SYS "OS_DynamicArea",2,6 TO ,,free%
+=free%
+:
+DEF PROCwimp_opencolourpickermodel(model%,dialoguetype%,value1,value2,value3,value4,none%,x%,y%)
+IF wColourblock%=-1 THEN DIM wColourblock% 255
+IF dialoguetype% <> 0 THEN dialoguetype%=1
+IF model%<0 THEN model%=0
+model%=(model% MOD 3)
+PROCwint_setcolourblockreservedvalues
+IF none%<1 THEN wColourblock%!0-=%1
+IF none%>1 THEN wColourblock%!0+=%10
+wColourblock%!8=x%
+wColourblock%!20=y%
+wColourblock%!40=model%
+PROCwint_initialcolourconvert(model%,value1,value2,value3,value4)
+SYS "ColourPicker_OpenDialogue",dialoguetype%,wColourblock% TO wPickerhandle%,wPickerwindow%
+ENDPROC
+:
+DEF PROCwimp_opencolourpickerrgb(dialoguetype%,red%,green%,blue%,none%,x%,y%)
+IF wColourblock%=-1 THEN DIM wColourblock% 255
+IF dialoguetype% <> 0 THEN dialoguetype%=1
+PROCwint_setcolourblockreservedvalues
+IF none%<1 THEN wColourblock%!0-=%1
+IF none%>1 THEN wColourblock%!0+=%10
+wColourblock%!8=x%
+wColourblock%!20=y%
+wColourblock%!40=0
+wColourblock%?(32+1)=red%
+wColourblock%?(32+2)=green%
+wColourblock%?(32+3)=blue%
+SYS "ColourPicker_OpenDialogue",dialoguetype%,wColourblock% TO wPickerhandle%,wPickerwindow%
+ENDPROC
+:
+DEF PROCwimp_opensubmenucolourpickermodel(model%,value1,value2,value3,value4,none%,x%,y%)
+IF wColourblock%=-1 THEN DIM wColourblock% 255
+IF model%<0 THEN model%=0
+model%=(model% MOD 3)
+PROCwint_setcolourblockreservedvalues
+IF none%<1 THEN wColourblock%!0-=%1
+IF none%>1 THEN wColourblock%!0+=%10
+wColourblock%!8=x%
+wColourblock%!20=y%
+wColourblock%!40=model%
+PROCwint_initialcolourconvert(model%,value1,value2,value3,value4)
+SYS "ColourPicker_OpenDialogue",3,wColourblock% TO wPickerhandle%,wPickerwindow%
+ENDPROC
+:
+DEF PROCwimp_opensubmenucolourpickerrgb(red%,green%,blue%,none%,x%,y%)
+IF wColourblock%=-1 THEN DIM wColourblock% 255
+PROCwint_setcolourblockreservedvalues
+IF none%<1 THEN wColourblock%!0-=%1
+IF none%>1 THEN wColourblock%!0+=%10
+wColourblock%!8=x%
+wColourblock%!20=y%
+wColourblock%!40=0
+wColourblock%?(32+1)=red%
+wColourblock%?(32+2)=green%
+wColourblock%?(32+3)=blue%
+SYS "ColourPicker_OpenDialogue",3,wColourblock% TO wPickerhandle%,wPickerwindow%
+ENDPROC
+:
+DEF PROCwint_setcolourblockreservedvalues
+wColourblock%!0=%10001
+wColourblock%!4=0
+wColourblock%!12=&80000000
+wColourblock%!16=&7FFFFFFF
+wColourblock%!24=0
+wColourblock%!28=0
+wColourblock%?(32+0)=0
+wColourblock%?(32+4)=20
+ENDPROC
+:
+DEF PROCwint_initialcolourconvert(model%,value1,value2,value3,value4)
+CASE model% OF
+  WHEN 0
+  wColourblock%?(32+1)=value1*255/100
+  wColourblock%?(32+2)=value2*255/100
+  wColourblock%?(32+3)=value3*255/100
+  WHEN 1
+  SYS "ColourTrans_ConvertCMYKToRGB",(value1/100)*2^16,(value2/100)*2^16,(value3/100)*2^16,(value4/100)*2^16 TO red%,green%,blue%
+  wColourblock%?(32+1)=255*(red%/&10000)
+  wColourblock%?(32+2)=255*(green%/&10000)
+  wColourblock%?(32+3)=255*(blue%/&10000)
+  WHEN 2
+  SYS "ColourTrans_ConvertHSVToRGB",((value1 MOD 360) << 16) OR &FFFF,(value2/100)+&FFFF,(value3/100)+&FFFF TO red%,green%,blue%
+  wColourblock%?(32+1)=255*(red%/&10000)
+  wColourblock%?(32+2)=255*(green%/&10000)
+  wColourblock%?(32+3)=255*(blue%/&10000)
+ENDCASE
+ENDPROC
+:
+DEF PROCwint_colourpickerchoice(model%)
+LOCAL none%,returnvalue1,returnvalue2,returnvalue3,returnvalue4
+none%=wimp%!24 AND 1
+returnvalue4=-1
+PROCuser_colourpickerrgb(wimp%?29,wimp%?30,wimp%?31,none%)
+returnvalue2=(wimp%!44/&10000)*100
+returnvalue3=(wimp%!48/&10000)*100
+CASE model% OF
+  WHEN 0
+  returnvalue1=(wimp%!40/&10000)*100
+  returnvalue4=-1
+  WHEN 1
+  returnvalue1=(wimp%!40/&10000)*100
+  returnvalue4=(wimp%!52/&10000)*100
+  WHEN 2
+  returnvalue1=(wimp%!40 >> 16)
+  returnvalue4=-1
+ENDCASE
+PROCuser_colourpickermodel(model%,returnvalue1,returnvalue2,returnvalue3,returnvalue4,none%)
+ENDPROC
+:
+DEF PROCwint_closecolourpicker(handle%)
+SYS "ColourPicker_CloseDialogue",0,handle%
+ENDPROC
+:
+DEF PROCwimp_savefile(savepath$,handle%,ftype%)
+LOCAL realsize%,realfile%,file%,bnt%
+realsize%=handle%!0
+realfile%=handle%+4
+PROCwimp_hourglasson
+SYS "OS_Find",&8F,savepath$ TO file%
+SYS "OS_GBPB",2,file%,realfile%,realsize% TO ,,,bnt%
+SYS "OS_Find",0,file%
+PROCwimp_hourglassoff
+IF bnt%<>0 THEN
+  PROCwimp_error(werrtitle$,"Unknown error whilst saving; the file has not been saved correctly.",1,"",0,1,"")
+ELSE
+  SYS "OS_File",18,savepath$,ftype%
+ENDIF
+ENDPROC
+:
+DEF PROCwint_receivedmess2(desttask%,inref%,destwhan%,destic%,destx%,desty%,ptr44%)
+LOCAL path$,Q%,drag%,write%,ok%,hextype%
+path$=FNwint_string(ptr44%)
+IF wToPrinter%=0 THEN
+  drag%=0:write%=1:ok%=2
+  PROCuser_saveicon(wSavew%,drag%,write%,ok%)
+  PROCwimp_hourglasson
+  Q%=FNuser_savedata(path$,wSavew%)
+  PROCwimp_hourglassoff
+ELSE
+  IF wDeleteFile%=0 THEN
+    SYS "OS_FSControl",26,wPrintFile$,path$,0
+  ELSE
+    SYS "OS_FSControl",26,wPrintFile$,path$,128
+  ENDIF
+  hextype%=wPrintFileType%
+  Q%=1
+ENDIF
+IF Q%=2 THEN
+  PROCwimp_error(werrtitle$,REPORT$+" at line "+STR$(ERL)+" when trying to save.",1,"",0,0,"")
+ELSE
+  IF Q%<>0 THEN
+    IF wToPrinter%=0 THEN
+      SYS "OS_ReadUnsigned",10,"&"+wSavet$ TO ,,hextype%
+      SYS "OS_File",18,path$,hextype%
+    ENDIF
+    wimp%!0=256
+    wimp%!12=inref%
+    wimp%!16=3
+    wimp%!20=destwhan%
+    wimp%!24=destic%
+    wimp%!28=destx%
+    wimp%!32=desty%
+    wimp%!36=-1
+    wimp%!40=hextype%
+    PROCwint_zeroterminate(wimp%+44,path$)
+    SYS "Wimp_SendMessage",18,wimp%,desttask%
+    IF wToPrinter%=0 THEN
+      IF path$<>"<Wimp$Scrap>" THEN PROCwimp_puticontext(wSavew%,write%,path$)
+    ENDIF
+  ENDIF
+ENDIF
+ENDPROC
+:
+DEF PROCwint_quicksave(whan%,writeicon%)
+LOCAL path$,Q%,type$
+type$=FNuser_savefiletype(whan%)
+IF LEN(type$)<4 THEN
+  path$=FNwimp_geticontext(whan%,writeicon%)
+  IF (INSTR(path$,".")>0) OR (INSTR(path$,":")>0) THEN
+    PROCwimp_hourglasson
+    Q%=FNuser_savedata(path$,whan%)
+    PROCwimp_hourglassoff
+    IF Q%=2 THEN
+      PROCwimp_error(werrtitle$,REPORT$+" at line "+STR$(ERL)+" when trying to save.",1,"",0,0,"")
+    ELSE
+      IF Q%<>0 THEN
+        SYS "OS_ReadUnsigned",10,"&"+type$ TO ,,hextype%
+        SYS "OS_File",18,path$,hextype%
+      ENDIF
+    ENDIF
+  ELSE
+    PROCwimp_error("Message","To save, drag the icon to a directory/application Filer window.",1,"",0,0,"")
+  ENDIF
+ELSE
+  PROCwimp_error(werrtitle$,"Filetype string too long in 'DEF FNuser_savefiletype'.",1,"",0,0,"Quit "+wappname$):PROCwimp_closedown:END
+ENDIF
+ENDPROC
+:
+DEF  PROCwimp_sendfiletoprinter(filepath$,deletefile%)
+LOCAL ftype%,leaf$,lenleaf%,messagelen%
+IF FNwimp_pdriverpresent=FALSE THEN
+  PROCwimp_error(werrtitle$,"Sorry, a printer driver isn't loaded.",1,"",0,1,"")
+ELSE
+  ftype$=FNwimp_testobjectpresent(filepath$,0)
+  IF ftype$="" OR (LEN(ftype$)>3) THEN
+    PROCwimp_error(werrtitle$,"Sorry, a file called "+filepath$+" cannot be found.",1,"",0,1,"")
+  ELSE
+    wToPrinter%=1
+    wPrintFile$=filepath$
+    wDeleteFile%=deletefile%
+    leaf$=FNwimp_getleafname(filepath$)
+    SYS "OS_ReadUnsigned",16,ftype$ TO ,,ftype%
+    wPrintFileType%=ftype%
+    wimp%!0=(44+LEN(leaf$)+4) AND &1FC
+    wimp%!12=0
+    wimp%!16=&80142
+    wimp%!20=-1
+    wimp%!24=-1
+    wimp%!28=0
+    wimp%!32=0
+    wimp%!36=-1
+    wimp%!40=ftype%
+    PROCwint_zeroterminate(wimp%+44,leaf$)
+    SYS "Wimp_SendMessage",18,wimp%,0
+  ENDIF
+ENDIF
+ENDPROC
+:
+DEF PROCwint_receivedmess4
+IF wToPrinter%=1 THEN
+  wToPrinter%=0
+  wPrintFileType%=0
+  wPrintFile$=""
+  wDeleteFile%=0
+ENDIF
+ENDPROC
+:
+DEF FNwint_getfilesize(path$,warning%)
+LOCAL exists%,filelength%
+SYS "XOS_File",17,path$ TO exists%,,,,filelength%
+IF exists%=0 THEN
+  IF warning%<>0 THEN
+    PROCwimp_error(werrtitle$,"Sorry, a file called "+path$+" cannot be found.",1,"",0,1,"")
+  ENDIF
+  filelength%=-1
+ENDIF
+=filelength%
+:
+DEF FNwimp_measurefile(path$,warning%)
+LOCAL return%
+return%=0
+return%=FNwint_getfilesize(path$,warning%)
+IF return%>-1 THEN return%+=4
+=return%
+:
+DEF FNwimp_loadfile(filepath$,address%,warning%)
+LOCAL nextloadat%,realsize%,loadat%
+nextloadat%=address%
+realsize%=FNwint_getfilesize(filepath$,warning%)
+IF realsize%>-1 THEN
+  address%!0=realsize%
+  loadat%=address%+4
+  PROCwimp_hourglasson
+  SYS "OS_Find",&4F,filepath$ TO file%
+  SYS "OS_GBPB",4,file%,loadat%,realsize%
+  SYS "OS_Find",0,file%
+  PROCwimp_hourglassoff
+  nextloadat%=address%+realsize%+4
+ENDIF
+=nextloadat%
+:
+DEF PROCwint_receivedmess3or5(type%,desttask%,inref%,whan%,icon%,x%,y%,size%,ftype%,ptr44%)
+LOCAL ftype$,path$,action%,workx%,worky%
+PROCwimp_hourglasson
+ftype$=STR$~(ftype%)
+CASE ftype$ OF
+  WHEN "1000","2000"
+  OTHERWISE
+  ftype$=RIGHT$("00"+ftype$,3)
+ENDCASE
+path$=FNwint_string(ptr44%)
+IF type%=5 THEN
+  whan%=0:icon%=-1
+  workx%=-1:worky%=-1
+ELSE
+  workx%=FNwimp_screentowork(whan%,x%,0)
+  worky%=FNwimp_screentowork(whan%,y%,1)
+ENDIF
+action%=FNuser_loaddata(path$,whan%,icon%,ftype$,workx%,worky%)
+IF action%=1 THEN PROCwint_dataloadack(path$,desttask%,inref%,whan%,icon%,x%,y%,size%,ftype%)
+PROCwimp_hourglassoff
+ENDPROC
+:
+DEF PROCwint_dataloadack(path$,desttask%,inref%,window%,icon%,x%,y%,size%,ftype%)
+wimp%!0=256
+wimp%!12=inref%
+wimp%!16=4
+wimp%!20=window%
+wimp%!24=icon%
+wimp%!28=x%
+wimp%!32=y%
+wimp%!36=size%
+PROCwint_zeroterminate(wimp%+44,path$)
+SYS "Wimp_SendMessage",17,wimp%,desttask%
+IF path$="<Wimp$Scrap>" THEN SYS "OS_FSControl",27,path$,,%10
+ENDPROC
+:
+DEF PROCwint_receivedmess1(desttask%,inref%,destwhan%,destic%,destx%,desty%,size%,ftype%)
+IF desttask%<>wTask% THEN
+  wimp%!0=256
+  wimp%!12=inref%
+  wimp%!16=2
+  wimp%!20=destwhan%
+  wimp%!24=destic%
+  wimp%!28=destx%
+  wimp%!32=desty%
+  wimp%!36=-1
+  wimp%!40=ftype%
+  PROCwint_zeroterminate(wimp%+44,"<Wimp$Scrap>")
+  SYS "Wimp_SendMessage",17,wimp%,desttask%
+ENDIF
+ENDPROC
+:
+DEF PROCwint_zeroterminate(wptr%,text$)
+$wptr%=text$
+wptr%?(LEN(text$))=0
+ENDPROC
+:
+DEF FNwimp_testobjectpresent(fullpath$,warning%)
+LOCAL return$,objecttype%,ftype%,loadaddr%
+return$="1234"
+return$=""
+SYS "OS_File",23,fullpath$ TO objecttype%,,,,,,ftype%
+IF objecttype%<>0 THEN
+  IF objecttype%<>3 THEN
+    IF ftype%=-1 THEN
+      return$="-1"
+    ELSE
+      return$=STR$~(ftype%)
+      WHILE LEN(return$)<3
+        return$="0"+return$
+      ENDWHILE
+    ENDIF
+  ELSE
+    SYS "OS_File",17,fullpath$ TO ,,loadaddr%
+    ftype%=((loadaddr%>>8) AND %111111111111)
+    return$=STR$~(ftype%)
+    WHILE LEN(return$)<3
+      return$="0"+return$
+    ENDWHILE
+  ENDIF
+ELSE
+  IF warning%<>0 THEN
+    PROCwimp_error(werrtitle$,"The object cannot be found.(Null string will be returned.)",1,"",0,1,"")
+  ENDIF
+ENDIF
+=return$
+:
+DEF FNwimp_countdirectoryobjects(dir$)
+LOCAL objects%,finishflag%,f%,dirbuffersize%
+dirbuffersize%=256
+IF wDirbuffer%=-1 THEN DIM wDirbuffer% dirbuffersize%-1
+objects%=-1
+REPEAT
+  objects%+=1
+  SYS "XOS_GBPB",9,dir$,wDirbuffer%,1,objects%,dirbuffersize% TO ,,,,finishflag%;f%
+  IF (f% AND 1)=1 THEN finishflag%=-1:objects%=-1
+UNTIL finishflag%=-1
+=objects%
+:
+DEF FNwimp_getdirectoryobjectname(dir$,objectnumber%)
+LOCAL objectname$,finishflag%,pointer%,f%,dirbuffersize%
+IF objectnumber%<1 THEN objectnumber%=1
+dirbuffersize%=256
+IF wDirbuffer%=-1 THEN DIM wDirbuffer% dirbuffersize%-1
+objectname$=""
+SYS "XOS_GBPB",9,dir$,wDirbuffer%,1,(objectnumber%-1),dirbuffersize% TO ,,,,finishflag%;f%
+IF (f% AND 1)=1 THEN finishflag%=-1
+IF finishflag%<>-1 THEN
+  pointer%=wDirbuffer%
+  WHILE ?pointer%>31
+    pointer%+=1
+  ENDWHILE
+  ?pointer%=13
+  objectname$=FNwint_string(wDirbuffer%)
+ENDIF
+=objectname$
+:
+DEF FNwimp_getdirectoryobjecttype(dir$,objectnumber%)
+LOCAL finishflag%,offset1%,offset2%,objecttype%,objectfiletype%,objectfiletypestring$,f%,dirbuffersize%
+IF objectnumber%<1 THEN objectnumber%=1
+dirbuffersize%=256
+IF wDirbuffer%=-1 THEN DIM wDirbuffer% dirbuffersize%-1
+offset1%=20
+offset2%=16
+objecttype%=0
+objecttypestring$="1234"
+objecttypestring$=""
+SYS "XOS_GBPB",12,dir$,wDirbuffer%,1,(objectnumber%-1),dirbuffersize% TO ,,,,finishflag%;f%
+IF (f% AND 1)=1 THEN finishflag%=-1
+IF finishflag%<>-1 THEN
+  objecttype%=wDirbuffer%!offset2%
+  IF objecttype%<>3 THEN
+    objectfiletype%=wDirbuffer%!offset1%
+  ELSE
+    objectfiletype%=((wDirbuffer%!0>>8) AND %111111111111)
+  ENDIF
+  objectfiletypestring$=STR$~(objectfiletype%)
+  WHILE LEN(objectfiletypestring$)<3
+    objectfiletypestring$="0"+objectfiletypestring$
+  ENDWHILE
+ENDIF
+=objectfiletypestring$
+:
+DEF FNwimp_getdirectorypath(pathname$)
+LOCAL return$,temp$
+return$=""
+temp$=FNwimp_getleafname(pathname$)
+IF temp$<>pathname$ THEN
+  return$=LEFT$(pathname$,LEN(pathname$)-LEN(temp$))
+ENDIF
+=return$
+:
+DEF FNwimp_getleafname(return$)
+WHILE INSTR(return$,".")>0
+  return$=MID$(return$,INSTR(return$,".")+1)
+ENDWHILE
+=MID$(return$,INSTR(return$,":")+1)
+:
+DEF FNwimp_copyobject(sourcepath$,destinationpath$,deletesource%,newer%,restamp%,force%,warning%)
+LOCAL return%,exist$,flags%,f%
+return%=1
+exist$=FNwimp_testobjectpresent(sourcepath$,0)
+IF exist$="" THEN
+  return%=0
+  IF warning%<>0 THEN
+    PROCwimp_error(werrtitle$,"Sorry, but the source file '"+sourcepath$+"' cannot be found.",1,"",0,1,"")
+  ENDIF
+ELSE
+  flags%=0
+  IF deletesource%<>0 THEN deletesource%=1
+  IF newer%<>0 THEN newer%=1
+  IF restamp%<>0 THEN restamp%=1
+  IF force%<>0 THEN force%=1
+  flags%+=(1<<14)+(newer%<<12)+(restamp%<<10)+(deletesource%<<7)+(force%<<1)+(1<<0)
+  PROCwimp_hourglasson
+  SYS "XOS_FSControl",26,sourcepath$,destinationpath$,flags% TO ;f%
+  PROCwimp_hourglassoff
+  IF (f% AND 1)=1 THEN return%=0
+ENDIF
+=return%
+:
+DEF FNwimp_deleteobject(path$,force%,warning%)
+LOCAL return%,exist$,flags%,f%
+return%=1
+exist$=FNwimp_testobjectpresent(path$,0)
+IF exist$="" THEN
+  return%=0
+  IF warning%<>0 THEN
+    PROCwimp_error(werrtitle$,"Sorry, but '"+path$+"' cannot be found.",1,"",0,1,"")
+  ENDIF
+ELSE
+  IF force%=1 THEN
+    flags%=%11
+  ELSE
+    flags%=%1
+  ENDIF
+  PROCwimp_hourglasson
+  SYS "XOS_FSControl",27,path$,,flags% TO ;f%
+  PROCwimp_hourglassoff
+  IF (f% AND 1)=1 THEN return%=0
+ENDIF
+=return%
+:
+DEF PROCwimp_doubleclickobject(path$,warning%)
+LOCAL exist$
+exist$=FNwimp_testobjectpresent(path$,0)
+IF exist$="" THEN
+  IF warning%<>0 THEN
+    PROCwimp_error(werrtitle$,"Sorry, but '"+path$+"' cannot be found.",1,"",0,1,"")
+  ENDIF
+ELSE
+  OSCLI("Filer_Run "+path$)
+ENDIF
+ENDPROC
+:
+DEF PROCwimp_setfiletypenumber(file$,ftype%,warning%)
+LOCAL exist$
+exist$=FNwimp_testobjectpresent(file$,0)
+CASE exist$ OF
+  WHEN ""
+  IF warning%<>0 THEN
+    PROCwimp_error(werrtitle$,"Sorry, but the file '"+file$+"' cannot be found.",1,"",0,1,"")
+  ENDIF
+  WHEN "1000","2000"
+  IF warning%<>0 THEN
+    PROCwimp_error(werrtitle$,"Sorry, but '"+file$+"' is a directory (or application).",1,"",0,1,"")
+  ENDIF
+  OTHERWISE
+  IF ftype%<0 OR ftype%>&FFF THEN ftype%=&FFF
+  SYS "XOS_File",18,file$,ftype%
+ENDCASE
+ENDPROC
+:
+DEF PROCwimp_setfiletypehexstring(file$,ftype$,warning%)
+LOCAL ftype%
+IF LEFT$(ftype$,1)<>"&" THEN ftype$="&"+ftype$
+SYS "XOS_ReadUnsigned",,ftype$ TO ,,ftype%
+PROCwimp_setfiletypenumber(file$,ftype%,warning%)
+ENDPROC
+:
+DEF PROCwimp_createdirectory(dir$,warning%)
+LOCAL create%,parentdir$,exist$,leafname$
+create%=TRUE
+parentdir$=LEFT$(FNwimp_getdirectorypath(dir$))
+exist$=FNwimp_testobjectpresent(parentdir$,0)
+IF exist$="" OR LEN(exist$)<4 THEN
+  create%=FALSE
+  IF warning%<>0 THEN
+    PROCwimp_error(werrtitle$,"Sorry, but the intended parent directory '"+parentdir$+"' cannot be found (or already exists as a file).",1,"",0,1,"")
+  ENDIF
+ENDIF
+IF create%=TRUE THEN
+  leafname$=FNwimp_getleafname(dir$)
+  exist$=FNwimp_testobjectpresent(dir$,0)
+  IF exist$<>"" AND LEN(exist$)<4 THEN
+    create%=FALSE
+    IF warning%<>0 THEN
+      PROCwimp_error(werrtitle$,"Sorry, but a file with the intended directory name '"+leafname$+"' already exists.",1,"",0,1,"")
+    ENDIF
+  ENDIF
+ENDIF
+IF create%=TRUE THEN
+  SYS "XOS_File",8,dir$,,,0
+ENDIF
+ENDPROC
+:
+DEF FNwimp_renameobject(existingpath$,newpath$,warning%)
+LOCAL rename%,exist$,newparentdir$,f%
+rename%=1
+exist$=FNwimp_testobjectpresent(existingpath$,0)
+IF exist$="" THEN
+  rename%=0
+  IF warning%<>0 THEN
+    PROCwimp_error(werrtitle$,"Sorry, but the object '"+existingpath$+"' cannot be found.",1,"",0,1,"")
+  ENDIF
+ENDIF
+IF rename%=1 THEN
+  exist$=FNwimp_testobjectpresent(newpath$,0)
+  IF exist$<>"" THEN
+    rename%=0
+    IF warning%<>0 THEN
+      PROCwimp_error(werrtitle$,"Sorry, but the intended renamed object '"+newpath$+"' already exists.",1,"",0,1,"")
+    ENDIF
+  ENDIF
+ENDIF
+IF rename%=1 THEN
+  newparentdir$=LEFT$(FNwimp_getdirectorypath(newpath$))
+  exist$=FNwimp_testobjectpresent(newparentdir$,0)
+  IF exist$="" THEN
+    rename%=0
+    IF warning%<>0 THEN
+      PROCwimp_error(werrtitle$,"Sorry, but the intended directory '"+newparentdir$+"' cannot be found.",1,"",0,1,"")
+    ENDIF
+  ENDIF
+ENDIF
+IF rename%=1 THEN
+  flags%=1<<7
+  SYS "XOS_FSControl",26,existingpath$,newpath$,flags% TO ;f%
+  IF (f% AND 1)=1 THEN rename%=0
+ENDIF
+=rename%
+:
+DEF FNwimp_getobjecttypenumber(fullpath$,warning%)
+LOCAL return%,objecttype%,ftype%,loadaddr%
+return%=0
+SYS "OS_File",23,fullpath$ TO objecttype%,,,,,,ftype%
+IF objecttype%=0 THEN
+  IF warning%<>0 THEN
+    PROCwimp_error(werrtitle$,"Sorry, but the object '"+fullpath$+"' cannot be found.",1,"",0,1,"")
+  ENDIF
+ELSE
+  IF objecttype%<>3 THEN
+    return%=ftype%
+  ELSE
+    SYS "OS_File",17,fullpath$ TO ,,loadaddr%
+    ftype%=((loadaddr%>>8) AND %111111111111)
+    return%=ftype%
+  ENDIF
+ENDIF
+=return%
+:
+DEF FNwimp_getobjecttypehexstring(fullpath$,warning%)
+LOCAL return$
+return$=""
+return$=FNwimp_testobjectpresent(fullpath$,warning%)
+=return$
+:
+DEF PROCwimp_opendirectory(dir$,default%,topx%,topy%,width%,height%,iconsize%,sortby%,warning%)
+LOCAL test$,param$,size$,sort$
+IF RIGHT$(dir$)="." THEN dir$=LEFT$(dir$)
+test$=FNwimp_testobjectpresent(dir$,0)
+IF LEN(test$)<4 THEN
+  IF warning%<>0 THEN
+    PROCwimp_error(werrtitle$,"Sorry, but '"+dir$+"' cannot be found - or it is not a directory.",1,"",0,1,"")
+  ENDIF
+ELSE
+  param$=" "
+  IF default%=0 THEN
+    IF iconsize%<1 THEN iconsize%=1
+    IF iconsize%>3 THEN iconsize%=3
+    IF sortby%<1 THEN sortby%=1
+    IF sortby%>4 THEN sortby%=4
+    size$=MID$("-si-li-fi",((iconsize%-1)*3)+1,3)
+    sort$=MID$("-sn-st-sd-ss",((sortby%-1)*3)+1,3)
+    param$+=STR$(topx%)+" "+STR$(topy%)+" "+STR$(width%)+" "+STR$(height%)+" "+size$+" "+sort$
+  ENDIF
+  SYS "OS_CLI","Filer_OpenDir "+dir$+param$
+ENDIF
+ENDPROC
+:
+DEF PROCwimp_closedirectory(dir$)
+IF RIGHT$(dir$)="." THEN dir$=LEFT$(dir$)
+SYS "OS_CLI","Filer_CloseDir "+dir$
+ENDPROC
+:
+DEF FNwimp_getscreensize(side%)
+LOCAL Eig%,s%
+IF side%<>0 THEN side%=1
+SYS "OS_ReadModeVariable",-1,side%+4 TO ,,Eig%
+SYS "OS_ReadModeVariable",-1,side%+11 TO ,,s%
+=(s%+1)<<Eig%
+:
+DEF FNwimp_getscreenres(direction%)
+LOCAL return%
+IF direction%<>0 THEN direction%=1
+SYS "OS_ReadModeVariable",-1,(11+direction%) TO ,,return%
+=return%+1
+:
+DEF FNwimp_worktoscreen(whan%,coord%,side%)
+LOCAL f%,return%
+return%=0
+IF side%<>0 THEN side%=1
+wimp%!0=whan%
+SYS "XWimp_GetWindowInfo",,(wimp% OR %1) TO ;f%
+IF (f% AND 1)=0 THEN
+  return%=coord%+wimp%!(side%*12+4)-wimp%!(side%*4+20)
+ENDIF
+=return%
+:
+DEF FNwimp_screentowork(whan%,coord%,side%)
+LOCAL f%,return%
+IF side%<>0 THEN side%=1
+return%=0
+wimp%!0=whan%
+SYS "XWimp_GetWindowInfo",,(wimp% OR %1) TO ;f%
+IF (f% AND 1)=0 THEN
+  return%=coord%+wimp%!(side%*4+20)-wimp%!(side%*12+4)
+ENDIF
+=return%
+:
+DEF FNwimp_lengthtoOS(lengthreal,scalereal,inch%)
+LOCAL returnreal
+IF inch%=0 THEN
+  returnreal=((lengthreal/25.4)*180)*(scalereal/100)
+ELSE
+  returnreal=(lengthreal*180)*(scalereal/100)
+ENDIF
+=returnreal
+:
+DEF FNwimp_OStolength(osreal,scalereal,inch%)
+LOCAL returnreal
+IF inch%=0 THEN
+  returnreal=((osreal/180)*25.4)*(scalereal/100)
+ELSE
+  returnreal=(osreal/180)*(scalereal/100)
+ENDIF
+=returnreal
+:
+DEF FNwimp_getdaydatetime(choice%)
+LOCAL choice$,current$
+choice$=""
+IF choice%<0 THEN choice%=0
+IF choice%>3 THEN choice%=3
+current$=FNwint_getcurrentdateandtime
+CASE choice% OF
+  WHEN 0:choice$=current$
+  WHEN 1:choice$=LEFT$(current$,3)
+  WHEN 2:choice$=MID$(current$,5,11)
+  WHEN 3:choice$=RIGHT$(current$,8)
+ENDCASE
+=choice$
+:
+DEF FNwint_getcurrentdateandtime
+LOCAL format$
+format$="%W3 %DY %M3 %CE%YR %24:%MI:%SE"
+IF wDateblk%=0 THEN
+  DIM wDateblk% 4,wResult% 63
+ENDIF
+?wDateblk%=3
+SYS"OS_Word",14,wDateblk% TO ,wDateblk%
+SYS "Territory_ConvertDateAndTime",-1,wDateblk%,wResult%,64,format$ TO wResult%
+=FNwint_string(wResult%)
+:
+DEF FNwimp_roundfloat(areal)
+LOCAL a%,diffreal
+a%=areal
+diffreal=areal-a%
+IF ABS(diffreal)>=0.5 THEN
+  IF areal<0 THEN
+    a%=a%-1
+  ELSE
+    a%=a%+1
+  ENDIF
+ENDIF
+=a%
+:
+DEF FNwimp_decplacesstr(number,decplaces%)
+LOCAL result$,return$,e$,e%,sign%,scale,@%
+@%="G10.9"
+sign%=SGN(number)
+result$=STR$(number)
+e%=INSTR(result$,"E")
+scale=10^(decplaces%+1)
+IF e%<>0 THEN
+  e$=MID$(result$,e%)
+  result$=LEFT$(result$,e%-1)
+ENDIF
+number=(ABS(VAL(result$))*scale)+0.5
+@%="+F25."+STR$(decplaces%)
+result$=STR$((number/scale)*sign%)
+IF INSTR(result$,".")=0 result$+="."
+IF decplaces%=0 THEN
+  result$=STR$(VAL(result$))
+  result$=LEFT$(result$,INSTR(result$,".")-1)
+ELSE
+  result$=result$+STRING$(decplaces%,"0")
+  result$=LEFT$(result$,INSTR(result$,".")+decplaces%)
+ENDIF
+return$=result$+e$
+=return$
+:
+DEF FNwimp_decplacesnum(number,decplaces%)
+LOCAL returnreal
+returnreal=VAL(FNwimp_decplacesstr(number,decplaces%))
+=returnreal
+:
+DEF FNwimp_numtodecstring(number%)
+LOCAL return$
+IF wConvert%=0 THEN DIM wConvert% wDimsize%-1
+return$=""
+SYS "OS_ConvertCardinal4",number%,wConvert%,wDimsize%
+return$=FNwint_string(wConvert%)
+=return$
+:
+DEF FNwimp_numtosigneddecstring(number%)
+LOCAL return$
+IF wConvert%=0 THEN DIM wConvert% wDimsize%-1
+return$=""
+SYS "OS_ConvertInteger4",number%,wConvert%,wDimsize%
+return$=FNwint_string(wConvert%)
+=return$
+:
+DEF FNwimp_numtohexstring(number%,digits%,prefix%)
+LOCAL return$
+IF wConvert%=0 THEN DIM wConvert% wDimsize%-1
+IF digits%<1 THEN digits%=1
+IF digits%>8 THEN digits%=8
+CASE digits% OF
+  WHEN 3,5,7
+  digits%+=1
+ENDCASE
+return$=""
+SYS "OS_ConvertHex"+STR$(digits%),number%,wConvert%,wDimsize%
+return$=FNwint_string(wConvert%)
+IF prefix%<>0 THEN return$="&"+return$
+=return$
+:
+DEF FNwimp_numtobinstring(number%,digits%,prefix%)
+LOCAL return$
+IF wConvert%=0 THEN DIM wConvert% wDimsize%-1
+IF digits%<1 THEN digits%=1
+IF digits%>4 THEN digits%=4
+return$=""
+SYS "OS_ConvertBinary"+STR$(digits%),number%,wConvert%,wDimsize%
+return$=FNwint_string(wConvert%)
+IF prefix%<>0 THEN return$="%"+return$
+=return$
+:
+DEF FNwimp_changecase(string$,upper%)
+LOCAL x%,table%,char%
+IF upper%<>0 THEN
+  SYS "Territory_UpperCaseTable",-1 TO table%
+ELSE
+  SYS "Territory_LowerCaseTable",-1 TO table%
+ENDIF
+FOR x%=1 TO LEN(string$)
+  char%=ASC(MID$(string$,x%,1))
+  MID$(string$,x%,1)=CHR$(table%?char%)
+NEXT
+=string$
+:
+DEF PROCwint_help(desttask%,inref%,whan%,icon%,mousex%,mousey%,button%)
+LOCAL help$,menu%,item%,sub%,len%
+help$=""
+SYS "Wimp_GetMenuState",1,wimp%,whan%,icon%
+IF wimp%!0<>-1 THEN
+  menu%=0:item%=0
+  PROCwint_getmenuanditem(wLastmenu%,menu%,item%)
+  sub%=!(menu%+8+(item%*24))
+  IF sub%=whan% THEN
+    help$=FNuser_help(whan%,icon%)
+  ELSE
+    help$=FNuser_menuhelp(menu%,item%)
+  ENDIF
+ELSE
+  help$=FNuser_help(whan%,icon%)
+ENDIF
+IF help$<>"" THEN
+  wimp%!0=(LEN(help$)+24) AND NOT 3
+  wimp%!12=inref%
+  wimp%!16=&503
+  PROCwint_zeroterminate(wimp%+20,help$)
+  SYS "Wimp_SendMessage",17,wimp%,desttask%
+ENDIF
+ENDPROC
+:
+DEF PROCwimp_setsysvariable(var$,val$)
+SYS "XOS_SetVarVal",var$,val$,LEN(val$)
+ENDPROC
+:
+DEF PROCwimp_unsetsysvariable(var$)
+SYS "XOS_SetVarVal",var$,,-1
+ENDPROC
+:
+DEF FNwimp_testsysvariable(sysvar$)
+LOCAL return%,len%
+return%=TRUE
+$wimp%=sysvar$
+SYS "XOS_ReadVarVal",wimp%,wimp%+255,-1,,3 TO ,,len%
+IF len%=0 THEN return%=FALSE
+=return%
+:
+DEF FNwimp_getsysvariable(sysvar$)
+LOCAL return$,len%
+return$=""
+IF FNwimp_testsysvariable(sysvar$)=TRUE THEN
+  $wimp%=sysvar$
+  SYS "OS_ReadVarVal",wimp%,wimp%+255,255,,3 TO ,,len%
+  wimp%?(len%+255)=13
+  return$=FNwint_string(wimp%+255)
+ENDIF
+=return$
+:
+DEF FNwimp_istaskrunning(taskname$)
+LOCAL nextstart%,buffersize%,task$
+return%=FALSE
+buffersize%=16
+nextstart%=0
+REPEAT
+  SYS "TaskManager_EnumerateTasks",nextstart%,wimp%,buffersize% TO nextstart%
+  SYS "XOS_GenerateError",wimp%!4 TO task$
+UNTIL nextstart%<0 OR task$=taskname$
+IF task$=taskname$ THEN return%=TRUE
+=return%
+:
+DEF FNwimp_createstringblock(n%,l%,da%)
+LOCAL blk%
+l%+=2
+n%+=1
+blocksize%=((n%*l%)+8)-1
+IF da%<>0 THEN
+  blk%=FNwimp_createdynamic(blocksize%,blocksize%,0,wappname$+" String block")
+ELSE
+  DIM blk% blocksize%
+ENDIF
+!blk%=l%
+blk%!4=n%-1
+=blk%
+:
+DEF PROCwimp_putinstringblock(blk%,item$,n%,error%)
+LOCAL l%,highest%
+highest%=blk%!4
+IF (n%<1 OR n%>highest%) AND (error%<>0) THEN
+  PROCwimp_error(werrtitle$,"Sorry, but you have specified a string position outside the defined block range of 1-"+STR$(highest%)+". No action will be taken.",1,"",0,1,"")
+ELSE
+  IF n%<1 THEN n%=1
+  IF n%>highest% THEN n%=highest%
+  l%=!blk%
+  $(blk%+(n%*l%)+8)=LEFT$(item$,l%)
+ENDIF
+ENDPROC
+:
+DEF FNwimp_getfromstringblock(blk%,n%,error%)
+LOCAL l%,value$,highest%
+value$=""
+highest%=blk%!4
+IF (n%<1 OR n%>highest%) AND (error%<>0) THEN
+  PROCwimp_error(werrtitle$,"Sorry, but you have specified a position outside the defined block range of 1-"+STR$(highest%)+". The returned value will be a null string.",1,"",0,1,"")
+ELSE
+  IF n%<1 THEN n%=1
+  IF n%>highest% THEN n%=highest%
+  l%=!blk%
+  value$=FNwint_string(blk%+(n%*l%)+8)
+ENDIF
+=value$
+:
+DEF PROCwimp_setstringblock(block%,string$)
+LOCAL N%,max%
+max%=block%!4
+FOR N%=1 TO max%
+  PROCwimp_putinstringblock(block%,string$,N%,0)
+NEXT
+ENDPROC
+:
+DEF FNwimp_createintegerblock(n%,da%)
+LOCAL blk%
+n%+=1
+blocksize%=(4*n%)-1
+IF da%<>0 THEN
+  blk%=FNwimp_createdynamic(blocksize%,blocksize%,0,wappname$+" Integer block")
+ELSE
+  DIM blk% blocksize%
+ENDIF
+blk%!0=n%-1
+=blk%
+:
+DEF PROCwimp_putinintegerblock(blk%,value%,n%,error%)
+LOCAL highest%
+highest%=blk%!0
+IF (n%<1 OR n%>highest%) AND (error%<>0) THEN
+  PROCwimp_error(werrtitle$,"Sorry, but you have specified an integer position outside the defined block range of 1-"+STR$(highest%)+". No action will be taken.",1,"",0,1,"")
+ELSE
+  IF n%<1 THEN n%=1
+  IF n%>highest% THEN n%=highest%
+  blk%!((n%+1)*4)=value%
+ENDIF
+ENDPROC
+:
+DEF FNwimp_getfromintegerblock(blk%,n%,error%)
+LOCAL highest%,value%
+value%=0
+highest%=blk%!0
+IF (n%<1 OR n%>highest%) AND (error%<>0) THEN
+  PROCwimp_error(werrtitle$,"Sorry, but you have specified a position outside the defined block range of 1-"+STR$(highest%)+". The returned value will be 0.",1,"",0,1,"")
+ELSE
+  IF n%<1 THEN n%=1
+  IF n%>highest% THEN n%=highest%
+  value%=blk%!((n%+1)*4)
+ENDIF
+=value%
+:
+DEF PROCwimp_setintegerblock(block%,value%)
+LOCAL N%,max%
+max%=block%!0
+FOR N%=1 TO max%
+  PROCwimp_putinintegerblock(block%,value%,N%,0)
+NEXT
+ENDPROC
+:
+DEF PROCwint_savewimp
+SYS "Wimp_TransferBlock",wTask%,wimp%,wTask%,wTempblk%,320
+ENDPROC
+:
+DEF PROCwint_loadwimp
+SYS "Wimp_TransferBlock",wTask%,wTempblk%,wTask%,wimp%,320
+ENDPROC
+:
+DEF PROCwint_savewimp2
+SYS "Wimp_TransferBlock",wTask%,wimp%,wTask%,wTempblk2%,320
+ENDPROC
+:
+DEF PROCwint_loadwimp2
+SYS "Wimp_TransferBlock",wTask%,wTempblk2%,wTask%,wimp%,320
+ENDPROC
+:
+DEF PROCwimp_hourglasson
+SYS "Hourglass_On"
+ENDPROC
+:
+DEF PROCwimp_hourglassoff
+SYS "Hourglass_Off"
+ENDPROC
+:
+DEF PROCwimp_hourglasspercentage(percent%)
+SYS "Hourglass_Percentage",percent%
+ENDPROC
+:
+DEF PROCwimp_setcolour(r%,g%,b%,background%)
+LOCAL c%,flags%
+c%=(b%<<24)+(g%<<16)+(r%<<8)
+IF background%<>0 THEN background%=1
+flags%=(1<<8)+(background%<<7)
+SYS "ColourTrans_SetGCOL",c%,,,flags%,0
+ENDPROC
+:
+DEF PROCwimp_plotwindowline(window%,point1x%,point1y%,point2x%,point2y%,type%)
+IF wPrinting%=FALSE THEN
+  point1x%=FNwimp_worktoscreen(window%,point1x%,0)
+  point1y%=FNwimp_worktoscreen(window%,point1y%,1)
+  point2x%=FNwimp_worktoscreen(window%,point2x%,0)
+  point2y%=FNwimp_worktoscreen(window%,point2y%,1)
+ENDIF
+MOVE point1x%,point1y%
+PLOT (type%*16)+5,point2x%,point2y%
+ENDPROC
+:
+DEF PROCwimp_plotwindowrectangle(window%,bottomleftx%,bottomlefty%,width%,height%,fill%)
+IF wPrinting%=FALSE THEN
+  bottomleftx%=FNwimp_worktoscreen(window%,bottomleftx%,0)
+  bottomlefty%=FNwimp_worktoscreen(window%,bottomlefty%,1)
+ENDIF
+IF fill%=0 THEN
+  RECTANGLE bottomleftx%,bottomlefty%,width%,height%
+ELSE
+  RECTANGLE FILL bottomleftx%,bottomlefty%,width%,height%
+ENDIF
+ENDPROC
+:
+DEF PROCwimp_plotwindowcircle(window%,centrex%,centrey%,radius%,fill%)
+IF wPrinting%=FALSE THEN
+  centrex%=FNwimp_worktoscreen(window%,centrex%,0)
+  centrey%=FNwimp_worktoscreen(window%,centrey%,1)
+ENDIF
+IF fill%=0 THEN
+  CIRCLE centrex%,centrey%,radius%
+ELSE
+  CIRCLE FILL centrex%,centrey%,radius%
+ENDIF
+ENDPROC
+:
+DEF PROCwimp_plotwindowellipse(window%,centrex%,centrey%,semimajor%,semiminor%,rotatedegrees,fill%)
+LOCAL rads
+IF wPrinting%=FALSE THEN
+  centrex%=FNwimp_worktoscreen(window%,centrex%,0)
+  centrey%=FNwimp_worktoscreen(window%,centrey%,1)
+ENDIF
+rads=RAD(rotatedegrees)
+IF fill%=0 THEN
+  ELLIPSE centrex%,centrey%,semimajor%,semiminor%,rads
+ELSE
+  ELLIPSE FILL centrex%,centrey%,semimajor%,semiminor%,rads
+ENDIF
+ENDPROC
+:
+DEF PROCwimp_plotwindowtriangle(window%,point1x%,point1y%,point2x%,point2y%,point3x%,point3y%,fill%)
+IF wPrinting%=FALSE THEN
+  point1x%=FNwimp_worktoscreen(window%,point1x%,0)
+  point1y%=FNwimp_worktoscreen(window%,point1y%,1)
+  point2x%=FNwimp_worktoscreen(window%,point2x%,0)
+  point2y%=FNwimp_worktoscreen(window%,point2y%,1)
+  point3x%=FNwimp_worktoscreen(window%,point3x%,0)
+  point3y%=FNwimp_worktoscreen(window%,point3y%,1)
+ENDIF
+MOVE point1x%,point1y%
+IF fill%=1 THEN
+  MOVE point2x%,point2y%
+  PLOT &55,point3x%,point3y%
+ELSE
+  DRAW point2x%,point2y%
+  DRAW point3x%,point3y%
+  DRAW point1x%,point1y%
+ENDIF
+ENDPROC
+:
+DEF PROCwimp_increaseslot(n%)
+starthimem%=HIMEM
+END=HIMEM+n%
+new%=HIMEM
+IF HIMEM-starthimem%<n% THEN PROCwimp_error(werrtitle$,"Failed to grab "+STR$n%+" bytes (only "+STR$(HIMEM-starthimem%)+" bytes grabbed). New WimpSlot size is "+STR$(INT((HIMEM-PAGE)/1024)+4)+"k.",1,"",0,1,"")
+ENDPROC
+:
+DEF PROCwimp_starttask(command$)
+SYS "Wimp_StartTask",command$
+ENDPROC
+:
+DEF PROCwimp_pause(seconds)
+LOCAL starttime%,endtime%
+seconds=ABS(seconds)
+SYS "OS_ReadMonotonicTime" TO starttime%
+REPEAT
+  SYS "OS_ReadMonotonicTime" TO endtime%
+UNTIL endtime% > (starttime%+(seconds*100))
+ENDPROC
+:
+DEF FNwint_string(wptr%)
+LOCAL a$
+SYS "OS_WriteN",wptr%,0 TO a$
+=a$
+:
+DEF FNwint_extractfiletoloadandstartupoptions(envstr$)
+LOCAL a$,L%,i%,temp$,leaf$,dir$,o%
+a$=envstr$
+FOR L%=1 TO 3
+  i%=INSTR(a$," ")
+  a$=RIGHT$(a$,LEN(a$)-i%)
+NEXT L%
+IF a$<>"" THEN
+  i%=INSTR(a$," ")
+  IF i%>0 THEN
+    temp$=LEFT$(a$,i%-1)
+  ELSE
+    temp$=a$
+  ENDIF
+  leaf$=FNwimp_getleafname(temp$)
+  dir$=LEFT$(temp$,LEN(temp$)-LEN(leaf$))
+  SYS "OS_File",21,leaf$,,,dir$ TO o%
+  IF o%=1 THEN
+    IF i%>0 THEN
+      wStartupoption$+=RIGHT$(a$,LEN(a$)-i%)
+    ELSE
+      wStartupoption$+=""
+    ENDIF
+    a$=temp$
+  ELSE
+    wStartupoption$+=a$
+    a$=""
+  ENDIF
+ENDIF
+=a$
+:
+DEF PROCwint_checkforload(startupfile$)
+LOCAL leaf$,dir$,ftype%,ftype$,dummy%
+IF startupfile$<>"" THEN
+  leaf$=FNwimp_getleafname(startupfile$)
+  dir$=LEFT$(startupfile$,LEN(startupfile$)-LEN(leaf$))
+  SYS "OS_File",21,leaf$,,,dir$ TO ,,,,,,ftype%
+  ftype$=RIGHT$("00"+STR$~(ftype%),3)
+  dummy%=FNuser_loaddata(startupfile$,0,-1,ftype$,-1,-1)
+ENDIF
+ENDPROC
+:
+DEF PROCwint_desktopsave
+LOCAL string$
+LOCAL ERROR
+ON ERROR LOCAL wimp%!12=wimp%!8:SYS "Wimp_SendMessage",19,wimp%,wimp%!4:RESTORE ERROR:ENDPROC
+IF wDesktopsave%=TRUE THEN
+  string$="Run "+wDesktopsave$+CHR$(10)
+  SYS "XOS_GBPB",2,wimp%!20,string$,LEN(string$)
+ENDIF
+RESTORE ERROR
+ENDPROC
+:
+DEF PROCwint_iconise(desttask%,inref%,window%)
+LOCAL text$,spritename$
+IF window%<>0 THEN
+  wICONISE%=TRUE
+  PROCwimp_closewindow(window%)
+  text$=FNwimp_getwindowtitle(window%)
+  IF text$="" OR INSTR(text$,"untitled")>0 THEN
+    text$=wappname$
+  ENDIF
+  spritename$=wappname$
+  IF LEN(spritename$)>7 THEN
+    spritename$=LEFT$(spritename$,7)
+  ENDIF
+  PROCuser_iconise(window%,text$,spritename$)
+  IF LEN(spritename$)>7 THEN
+    PROCwimp_error(werrtitle$,"Your intended customised iconiser sprite name has more than 7 characters, so the Wimp will display a default icon instead.",1,"",0,1,"")
+  ENDIF
+  wimp%!0=256
+  wimp%!12=inref%
+  wimp%!16=&400CC
+  wimp%!20=window%
+  wimp%!24=0
+  PROCwint_zeroterminate(wimp%+28,spritename$)
+  PROCwint_zeroterminate(wimp%+36,text$)
+  SYS "Wimp_SendMessage",17,wimp%,desttask%
+ENDIF
+ENDPROC
+:
+DEF FNwimp_osversion
+LOCAL mod%,a$,a%
+SYS "OS_Module",18,"UtilityModule" TO ,,,mod%
+mod%+=(mod%!&14)
+a$=FNwint_string(mod%)
+a$=MID$(a$,INSTR(a$,CHR$(9))+1)
+a$=MID$(a$,1,1)+MID$(a$,3,2)
+a%=VAL(a$)
+=a%
+:
+DEF PROCwint_scalefactors(xscalereal,yscalereal,RETURN xmult, RETURN ymult,RETURN xdiv,RETURN ydiv)
+LOCAL xi%,yi%,x$,y$,xii%,yii%
+xi%=xscalereal
+yi%=yscalereal
+x$=STR$xscalereal
+y$=STR$yscalereal
+xii%=INSTR(x$,".")
+yii%=INSTR(y$,".")
+x$=LEFT$(RIGHT$(x$,LEN(x$)-xii%),6)
+y$=LEFT$(RIGHT$(y$,LEN(y$)-yii%),6)
+IF xii%=0 THEN x$=""
+IF yii%=0 THEN y$=""
+xmult=VAL(STR$xi%+x$)
+ymult=VAL(STR$yi%+y$)
+xdiv=10^LEN(x$)
+ydiv=10^LEN(y$)
+ENDPROC
+:
+DEF FNwimp_loadjpegfile(jpegfilepath$,address%,warning%)
+=FNwimp_loadfile(jpegfilepath$,address%,warning%)
+:
+DEF PROCwimp_savejpeg(savepath$,jpeghandle%)
+PROCwimp_savefile(savepath$,jpeghandle%,&C85)
+ENDPROC
+:
+DEF FNwimp_getjpegsize(jpeghandle%,side%,dpi90%)
+LOCAL realsize%,realfile%
+LOCAL ro%,width%,height%,xden%,yden%,value%
+realsize%=jpeghandle%!0
+realfile%=jpeghandle%+4
+value%=0
+ro%=1
+SYS "JPEG_Info",ro%,realfile%,realsize% TO ,,width%,height%,xden%,yden%
+IF dpi90%<>0 THEN
+  xden%=90
+  yden%=90
+ENDIF
+IF side%=0 THEN
+  value%=FNwimp_lengthtoOS((width%/xden%),100,1)
+ELSE
+  value%=FNwimp_lengthtoOS((height%/yden%),100,1)
+ENDIF
+=value%
+:
+DEF FNwimp_getjpegsizefile(jpegfilepath$,side%,dpi90%,warning%)
+LOCAL value%,ro%,width%,height%,xden%,yden%,f%,flag%
+value%=0
+ro%=1
+SYS "XJPEG_FileInfo",ro%,jpegfilepath$ TO ,,width%,height%,xden%,yden%;f%
+flag%=(f% AND 1)
+IF flag%=0 THEN
+  IF dpi90%<>0 THEN
+    xden%=90
+    yden%=90
+  ENDIF
+  IF side%=0 THEN
+    value%=FNwimp_lengthtoOS((width%/xden%),100,1)
+  ELSE
+    value%=FNwimp_lengthtoOS((height%/yden%),100,1)
+  ENDIF
+ELSE
+  IF warning%<>0 THEN
+    PROCwimp_error(werrtitle$,"Sorry, a file called "+jpegfilepath$+" cannot be found. A size of 0 will be returned.",1,"",0,1,"")
+  ENDIF
+ENDIF
+=value%
+:
+DEF PROCwimp_renderwindowjpeg(window%,jpeghandle%,bx%,by%,minx%,miny%,maxx%,maxy%,xscalereal,yscalereal)
+IF wPrinting%=FALSE THEN
+  bx%=FNwimp_worktoscreen(window%,bx%,0)
+  by%=FNwimp_worktoscreen(window%,by%,1)
+ENDIF
+PROCwimp_renderjpeg(jpeghandle%,bx%,by%,minx%,miny%,maxx%,maxy%,xscalereal,yscalereal)
+ENDPROC
+:
+DEF PROCwimp_renderjpeg(jpeghandle%,bx%,by%,minx%,miny%,maxx%,maxy%,xscalereal,yscalereal)
+LOCAL realsize%,realfile%
+LOCAL r1%
+realsize%=jpeghandle%!0
+realfile%=jpeghandle%+4
+wDmatrix%!0=&10000*xscalereal
+wDmatrix%!4=0
+wDmatrix%!8=0
+wDmatrix%!12=&10000*yscalereal
+wDmatrix%!16=bx%*256
+wDmatrix%!20=by%*256
+r1%=%110
+SYS "JPEG_PlotTransformed",realfile%,r1%,wDmatrix%,realsize%
+ENDPROC
+:
+DEF PROCwimp_renderwindowjpegfile(window%,jpegfilepath$,bx%,by%,minx%,miny%,maxx%,maxy%,xscalereal,yscalereal,warning%)
+IF wPrinting%=FALSE THEN
+  bx%=FNwimp_worktoscreen(window%,bx%,0)
+  by%=FNwimp_worktoscreen(window%,by%,1)
+ENDIF
+PROCwimp_renderjpegfile(jpegfilepath$,bx%,by%,minx%,miny%,maxx%,maxy%,xscalereal,yscalereal,warning%)
+ENDPROC
+:
+DEF PROCwimp_renderjpegfile(jpegfilepath$,bx%,by%,minx%,miny%,maxx%,maxy%,xscalereal,yscalereal,warning%)
+LOCAL xmult,ymult,xdiv,ydiv,r4%,f%,flag%
+xmult=1
+ymult=1
+xdiv=1
+ydiv=1
+PROCwint_scalefactors(xscalereal,yscalereal,xmult,ymult,xdiv,ydiv)
+wScale%!0=xmult
+wScale%!4=ymult
+wScale%!8=xdiv
+wScale%!12=ydiv
+r4%=%11
+SYS "XJPEG_PlotFileScaled",jpegfilepath$,bx%,by%,wScale%,r4% TO ;f%
+flag%=(f% AND 1)
+IF (flag%=1) AND (warning%<>0) THEN
+  PROCwimp_error(werrtitle$,"Sorry, a file called "+jpegfilepath$+" cannot be found.",1,"",0,1,"")
+ENDIF
+ENDPROC

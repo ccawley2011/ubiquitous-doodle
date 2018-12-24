@@ -1,0 +1,14 @@
+Set ACT$Dir <Obey$Dir>
+Iconsprites <ACT$Dir>.!Sprites
+
+Set ACT$Help "<ACT$Dir>.!Help"
+Set ACT$Version "0.2 (19-Apr-14)"
+Set ACT$Title "ACT"
+Set ACT$Publisher "Cameron Cawley"
+Set ACT$Description "Another cache tool"
+Set ACT$Web "http://theoval.cmp.uea.ac.uk/~gcc/family/cameron/"
+
+IF "<ACT$Running>"<>"" THEN Error ACT is already running.
+
+WimpSlot -min 256k -max 256k
+Run <ACT$Dir>.!RunImage %*0

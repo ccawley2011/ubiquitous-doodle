@@ -1,0 +1,15 @@
+ACT Version 0.2
+~~~
+
+ACT - Another cache tool. The name sums the program up.
+
+The program can put the cache in one of four states:
+
+Cache on  - all caches on
+Cache iw  - information and write caches on, data cache off
+Cache w   - write cache on, information and data caches off
+Cache off - all caches off
+
+v0.2 now supports Interactive Help.
+
+By Cameron Cawley
