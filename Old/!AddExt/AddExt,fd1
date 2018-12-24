@@ -1,0 +1,21 @@
+ON ERROR PROCerror
+OSCLI "RMEnsure MimeMap 0.06"
+*If "<AddExt$File>"="" Then Error Syntax: *AddExt <60>filename<62>
+SYS "OS_File",21,"<AddExt$File>" TO FILE%,,,,,,RISCOS%
+IF FILE% = 0 THEN
+   OSCLI "Error File <AddExt$File> not found"
+ENDIF
+IF FILE% = 2 THEN
+   OSCLI "Error <AddExt$File> is a directory"
+ENDIF
+SYS "MimeMap_Translate",0,RISCOS%,3,"" TO ,,,TYPE$
+OSCLI "Rename <AddExt$File> <AddExt$File>/"+TYPE$
+OSCLI "Unset AddExt$File"
+END
+
+DEF PROCerror
+   REPORT
+   PRINT ""
+   OSCLI "Unset AddExt$File"
+   END
+ENDPROC

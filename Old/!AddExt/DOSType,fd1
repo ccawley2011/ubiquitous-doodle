@@ -1,0 +1,32 @@
+ON ERROR PROCerror
+OSCLI "RMEnsure MimeMap 0.06"
+*If "<DOSType$File>"="" Then Error Syntax: *DOSType <60>filename<62>
+SYS "OS_File",21,"<DOSType$File>" TO FILE%
+IF FILE% = 0 THEN
+   OSCLI "Error File <DOSType$File> not found"
+ENDIF
+IF FILE% = 2 THEN
+   OSCLI "Error <DOSType$File> is a directory"
+ENDIF
+DIMvar%1024
+SYS "OS_ReadVarVal","DOSType$File",var%,1024,0 TO ,,A%
+var%?A%=13
+counter%=LEN($var%)
+REPEAT
+   counter%=counter%-1
+UNTIL counter%=0 OR MID$($var%,counter%,1) = "." OR MID$($var%,counter%,1) = "/"
+IF MID$($var%,counter%,1) <> "/" THEN
+   ERROR 1, "No DOS extension found"
+ENDIF
+DOS$=RIGHT$($var%,LEN($var%)-counter%)
+SYS "MimeMap_Translate",3,"."+DOS$,0,"" TO ,,,TYPE%
+SYS "OS_File",18,"<DOSType$File>",TYPE%
+OSCLI "Unset DOSType$File"
+END
+
+DEF PROCerror
+   REPORT
+   PRINT ""
+   OSCLI "Unset DOSType$File"
+   END
+ENDPROC

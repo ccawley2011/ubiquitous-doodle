@@ -1,0 +1,13 @@
+AddExt v0.2
+~~~~~~
+AddExt will add a DOS extension to a file by using the MimeMap module. Syntax:
+
+*AddExt <filename>
+
+Also included is a program called DOSType, which will set the filetype of a file by looking at the DOS extension at the end of the file (if it's there) and using the MimeMap modue. Syntax:
+
+*DOSType <filename>
+
+v0.2 will attempt to automatically set the file type of &FE4 (DOS) files when they're double-clicked.
+
+By Cameron Cawley

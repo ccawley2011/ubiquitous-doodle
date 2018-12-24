@@ -1,0 +1,2 @@
+Run <Obey$Dir>.!Boot
+If "<Wimp$State>"="desktop" THEN Filer_Run <AddExt$Dir>.!Help

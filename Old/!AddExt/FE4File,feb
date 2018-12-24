@@ -1,0 +1,7 @@
+RMEnsure UtilityModule 3.50 If "<Alias$Do>"="" Then Set Alias$Do %%*0
+DOSType %*1
+<Obey$Dir>.GetType %*1
+If "<GetType$Type>"="FE4" THEN ERROR Could not determine file type from extension
+If "%0"="-run" AND "<Wimp$State>"="desktop" THEN Do Filer_Run %*1
+If "%0"="-run" AND "<Wimp$State>"="commands" THEN Run %*1
+If "%0"="-load" THEN Load %*1

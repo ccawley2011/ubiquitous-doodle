@@ -1,0 +1,17 @@
+SYS "OS_GetEnv" TO Env$
+char%=0
+space%=0
+REPEAT
+   char%+=1
+   IF MID$(Env$,char%,1)=" " THEN
+      space%+=1
+   ENDIF
+UNTIL space% = 3 OR char% = LEN(Env$)
+IF RIGHT$(Env$,LEN(Env$)-char%) = "" THEN
+   ERROR 0, "Syntax: GetType <file>"
+ENDIF
+SYS "OS_File",21,RIGHT$(Env$,LEN(Env$)-char%) TO FILE%,,,,,,RISCOS%
+IF FILE% = 0 THEN
+   ERROR 0, "File "+RIGHT$(Env$,LEN(Env$)-char%)+" not found"
+ENDIF
+OSCLI "Set GetType$Type "+STR$~(RISCOS%)

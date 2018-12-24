@@ -1,0 +1,6 @@
+Set AddExt$Dir <Obey$Dir>
+IconSprites <AddExt$Dir>.!Sprites
+Set Alias$AddExt If "%%*0"<>"" Then Set AddExt$File %%*0|MRun <AddExt$Dir>.AddExt 
+Set Alias$DOSType If "%%*0"<>"" Then Set DOSType$File %%*0|MRun <AddExt$Dir>.DOSType 
+Set Alias$@RunType_FE4 <AddExt$Dir>.FE4File -run %%*0
+Set Alias$@LoadType_FE4 <AddExt$Dir>.FE4File -load %%*0
