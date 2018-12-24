@@ -1,0 +1,21 @@
+Set LinkFile$Dir <Obey$Dir>
+<Obey$Dir>.SmartIcon <Obey$Dir>.!Sprites <Obey$Dir>.!Sprites4 <Obey$Dir>.!Sprites5
+Set Alias$LinkFile <LinkFile$Dir>.!Run %%*0
+Set Alias$ln <LinkFile$Dir>.ln %%*0
+
+Set File$Type_035 Link
+Set Alias$@RunType_035 <LinkFile$Dir>.!Run -run %%*0
+Set Alias$@LoadType_035 <LinkFile$Dir>.!Run -load %%*0
+
+Set File$Type_1C8 Symlink
+Set Alias$@RunType_1C8 <LinkFile$Dir>.!Run -run %%*0
+Set Alias$@LoadType_1C8 <LinkFile$Dir>.!Run -load %%*0
+
+Set File$Type_B28 URL
+Set Alias$@RunType_B28 <LinkFile$Dir>.!Run -url %%*0
+
+Set File$Type_1BA IEURL
+Set Alias$@RunType_1BA <LinkFile$Dir>.!Run -url %%*0
+
+Set File$Type_FC0 LinkFS
+If "<Alias$@RunType_FC0>"="" THEN Set Alias$@RunType_FC0 <LinkFile$Dir>.!Run -dir %%*0

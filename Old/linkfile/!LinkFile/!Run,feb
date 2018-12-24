@@ -1,0 +1,7 @@
+Run <Obey$Dir>.!Boot
+If "%*0"="" AND "<Wimp$State>"="desktop" THEN Filer_Run <LinkFile$Dir>.!Help
+If "%*0"="" THEN Obey
+Set Link$Mode "%0"
+Set Link$File "%1"
+Set Link$Params "%*2"
+Run <LinkFile$Dir>.!RunImage

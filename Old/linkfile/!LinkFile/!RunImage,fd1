@@ -1,0 +1,135 @@
+REM LinkFile
+REM By Cameron Cawley
+ON ERROR PROCerror
+SYS "OS_File",21,"<Link$File>" TO ,,,,,,TYPE%
+IF TYPE%=&B28 OR TYPE%=&1BA THEN
+   FILE = OPENIN "<Link$File>"
+   TARGET$=GET$#FILE
+   IF LEFT$(TARGET$,1)="[" THEN
+      REPEAT
+         TARGET$=GET$#FILE
+      UNTIL LEFT$(TARGET$,4)="URL="
+      TARGET$=RIGHT$(TARGET$,LEN(TARGET$)-4)
+   ENDIF
+   IF LEFT$(TARGET$,8)="{"+CHR$(34)+"url"+CHR$(34)+": " THEN
+      X%=0
+      QUOTE%=0
+      REPEAT
+         X%=X%+1
+         IF MID$(TARGET$,X%,1)=CHR$(34) THEN
+            QUOTE%=QUOTE%+1
+         ENDIF
+      UNTIL QUOTE%=4 OR X%=LEN(TARGET$)
+      TARGET$=MID$(TARGET$,10,X%-10)
+   ENDIF
+   CLOSE#FILE
+   PROTOCOL$=""
+   char%=1
+   REPEAT
+      PROTOCOL$=PROTOCOL$+MID$(TARGET$,char%,1)
+      char%=char%+1
+   UNTIL MID$(TARGET$,char%,1)=":"
+ELSE
+   IF TYPE%=&1C8 THEN
+      FILE = OPENIN "<Link$File>"
+      ID$=FNchars(4,FILE)
+      IF ID$<>"LINK" THEN CLOSE#FILE:ERROR 0, "This is not a symbolic link file."
+      TARGET$=FNreadchars(FNreadlitendian(4,FILE),FILE)
+      CLOSE#FILE
+      TARGET$=RIGHT$(TARGET$,LEN(TARGET$)-8)
+   ELSE
+      FILE = OPENIN "<Link$File>"
+      TARGET$=GET$#FILE
+      CLOSE#FILE
+   ENDIF
+ENDIF
+
+OSCLI "Set Link$Target "+TARGET$
+*If "<Link$Mode>"="-dir" THEN Do SetEval Link$Target "<Link$Target>" LEFT (LEN "<Link$Target>" - 1)
+SYS "OS_File",21,"<Link$File>" TO ,,,,,,TYPE%
+OSCLI "SetEval Link$FileType "+STR$(TYPE%)
+IF TYPE%<>&B28 AND TYPE%<>&1BA THEN
+   SYS "OS_File",21,"<Link$Target>" TO ,,,,,,TYPE%
+   OSCLI "SetEval Link$TargetType "+STR$(TYPE%)
+ENDIF
+*If "<Link$TargetType>"=&1C8 THEN Set Link$Target <Link$File>.^.<Link$Target>
+IF TYPE%<>&B28 AND TYPE%<>&1BA THEN
+   OSCLI "IfThere <Link$Target> Then Else Error File <Link$Target> not found"
+ENDIF
+IF TYPE%<>&B28 AND TYPE%<>&1BA AND TYPE%<>&FC0 THEN
+   OSCLI "Set Link$Target <Link$Target> <Link$Params>"
+ENDIF
+OSCLI "Unset <Link$Params>"
+
+ON ERROR OFF
+
+*If "<Link$Mode>"="-run" AND "<Wimp$State>"="desktop" AND "<Link$Params>"="" THEN Do Filer_Run <Link$Target>
+*If "<Link$Mode>"="-run" AND "<Wimp$State>"="desktop" AND "<Link$Params>"<>"" THEN Do Run <Link$Target>
+*If "<Link$Mode>"="-run" AND "<Wimp$State>"="commands" THEN Do Run <Link$Target>
+
+*If "<Link$Mode>"="-load" THEN Load <Link$Target>
+
+*If "<Link$Mode>"="-dir" AND "<Link$TargetType>"=&2000 AND "<Wimp$State>"="commands" THEN Do Run <Link$Target>
+*If "<Link$Mode>"="-dir" AND "<Link$TargetType>"=&2000 AND "<Wimp$State>"="desktop" THEN Do Filer_Run <Link$Target>
+*If "<Link$Mode>"="-dir" AND "<Link$TargetType>"=&2000 THEN Quit
+*If "<Link$Mode>"="-dir" AND "<Wimp$State>"="desktop" THEN Filer_OpenDir <Link$Target>
+*If "<Link$Mode>"="-dir" AND "<Wimp$State>"="commands" THEN Dir <Link$Target>
+
+*If "<Link$Mode>"="-read" THEN Quit
+
+ON ERROR PROCerror
+SYS "OS_File",21,"<Link$File>" TO ,,,,,,TYPE%
+IF TYPE%=&B28 OR TYPE%=&1BA THEN
+   *Set LinkFile$AcornURI 1
+   *RMEnsure AcornURI 0 IfThere System:Modules.Network.URI Then RMLoad System:Modules.Network.URI
+   *RMEnsure AcornURI 0 Set LinkFile$AcornURI 0
+   DIMuri%1024
+   SYS "OS_ReadVarVal","LinkFile$AcornURI",uri%,1024,0 TO ,,A%
+   uri%?A%=13
+   IF $uri%="1" THEN
+      OSCLI "Do URIDispatch <Link$Target>"
+      END
+   ENDIF
+   ON ERROR OSCLI "Error No program has been seen that can open a page using this protocol":END
+   DIMvar%1024
+   SYS "OS_ReadVarVal","Alias$URLOpen_"+PROTOCOL$,var%,1024,0 TO ,,A%
+   var%?A%=13
+   ON ERROR REPORT:END
+   OSCLI "Do URLOpen_"+PROTOCOL$+" <Link$Target>"
+ENDIF
+OSCLI "Unset Link$File"
+OSCLI "Unset Link$FileType"
+OSCLI "Unset Link$Mode"
+OSCLI "Unset Link$Target"
+OSCLI "Unset Link$TargetType"
+END
+
+DEF FNreadsysvar(variable$)
+   DIMvar%1024
+   SYS "OS_ReadVarVal",variable$,var%,1024,0 TO ,,A%
+   var%?A%=13
+=$var%
+
+DEF PROCerror
+   ON ERROR OFF
+   REPORT
+   PRINT " at line "+STR$(ERL)
+   END
+ENDPROC
+
+DEF FNreadchars(chars%,handle%)
+LOCAL N$,X%
+N$=""
+FOR X%=1 TO chars% STEP 1
+   A=BGET#handle%
+   N$=N$+CHR$(A)
+NEXT
+=N$
+
+DEF FNreadlitendian(bytes%,handle%)
+LOCAL Z$,N%
+Z$=""
+FOR N%=1 TO bytes% STEP 1
+   Z$=RIGHT$("0"+STR$~(BGET#handle%),2)+Z$
+NEXT
+=EVAL("&"+Z$)

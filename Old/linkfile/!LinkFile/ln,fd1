@@ -1,0 +1,45 @@
+IF FNargs(2)="" THEN
+   ERROR 0, "Syntax: ln <target> <link>"
+ENDIF
+path$=FNargs(1)
+SYS "OS_File",21,path$ TO ,,,,,,TYPE%
+IF TYPE%=&1000 OR TYPE%=&2000 THEN path$=path$+"."
+FILE = OPENOUT FNargs(2)
+BPUT#FILE, path$
+CLOSE#FILE
+IF TYPE%=&1000 OR TYPE%=&2000 THEN
+   OSCLI "SetType "+FNargs(2)+" &FC0"
+ELSE
+   OSCLI "SetType "+FNargs(2)+" &035"
+ENDIF
+END
+
+DEF FNargs(number%)
+   SYS "OS_GetEnv" TO Env$
+   char%=0
+   space%=0
+   REPEAT
+     char%+=1
+     IF MID$(Env$,char%,1)=" " THEN
+       space%+=1
+     ENDIF
+   UNTIL space% = 3 OR char% = LEN(Env$)
+   A$=RIGHT$(Env$,LEN(Env$)-char%)
+   IF number%=0 THEN
+      FINAL$=A$
+   ELSE
+      char%=0
+      space%=0
+      start%=-1
+      REPEAT
+         char%+=1
+         IF space%=number%-1 AND start%=-1 THEN
+            start%=char%
+         ENDIF
+         IF MID$(A$,char%,1)=" " THEN
+            space%+=1
+         ENDIF
+      UNTIL space% = number% OR char% > LEN(A$)
+      FINAL$=MID$(A$,start%,char%-start%)
+   ENDIF
+=FINAL$
