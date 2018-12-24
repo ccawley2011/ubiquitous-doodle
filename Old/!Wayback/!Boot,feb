@@ -1,0 +1,3 @@
+Set Wayback$Dir <Obey$Dir>
+
+Iconsprites <Wayback$Dir>.!Sprites

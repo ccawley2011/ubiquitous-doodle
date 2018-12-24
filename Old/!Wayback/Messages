@@ -1,0 +1,17 @@
+ProgName:Wayback
+ProgDesc:Travel back through time
+ProgAuth:Cameron Cawley
+ProgWeb:http://theoval.cmp.uea.ac.uk/~gcc/family/cameron/
+IbarmenuT:Wayback
+Ibarmenu1:Info
+Ibarmenu2:Help
+Ibarmenu3:web.archive.org
+Ibarmenu4:Quit
+HelpText1:Type the url of the website you want to visit in this box.
+HelpText2:\Sgo to web.archive.org
+HelpText3:\Ssee the version(s) of this website on the Wayback Machine
+HelpText4:This window displays information about !Wayback
+HelpText5:\Rsee information about !Wayback
+HelpText6:\Sread the !Help file
+HelpText7:\Sgo to web.archive.org.|M\Rspecify a web address
+HelpText8:\Squit !Wayback

@@ -1,0 +1,19 @@
+Set Wayback$Dir <Obey$Dir>
+
+Iconsprites <Wayback$Dir>.!Sprites
+
+Set Wayback$Help "<Wayback$Dir>.!Help"
+Set Wayback$Version "0.2 (02-Sep-14)"
+Set Wayback$Title "Wayback"
+Set Wayback$Publisher "© Cameron Cawley"
+Set Wayback$Description "Travel back through time"
+Set Wayback$Web "http://theoval.cmp.uea.ac.uk/~gcc/family/cameron/"
+
+IF "<Wayback$Running>"<>"" THEN Error Wayback is already running.
+
+RMEnsure AcornURI 0 IfThere System:Modules.Network.URI Then RMLoad System:Modules.Network.URI
+RMEnsure AcornURI 0 Error Wayback requires the AcornURI module
+
+WimpSlot -min 256k -max 256k
+
+Run <Wayback$Dir>.!RunImage %*0
