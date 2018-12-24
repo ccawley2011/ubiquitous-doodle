@@ -1,0 +1,155 @@
+Constant Story "Treasure Hunt";
+
+Constant Headline
+           "^Treasure Hunt^
+             By Cameron Cawley (2014)^
+             Version 2.00 (08-Jul-2014)^";
+
+Constant MAX_SCORE 5;
+
+Serial "140708";
+
+Release 1;
+
+Include "Parser";
+Include "VerbLib";
+
+[ Initialise;
+
+location = Outside;
+move tshirt to Player;
+move jeans to Player;
+
+];
+
+[ PrintRank;
+  print ", earning you the rank of ";
+  if (score >= 5) "the greatest.";
+  if (score >= 4) "above average.";
+  if (score >= 3) "average.";
+  if (score >= 2) "below average.";
+  if (score >= 1) "the barely living.";
+  "the living dead.";
+];
+
+Object tshirt "t-shirt"
+    with name "t-shirt" "shirt",
+         description "A rather boring looking white t-shirt.",
+         before [;
+             Disrobe: "As you see no reason to run around the woods naked, you keep your clothes on.";
+         ],
+    has  clothing worn;
+
+Object jeans "pair of jeans"
+    with name "jeans" "pair" "trousers",
+         description "Jeans. Blue (sometimes black) denim trousers. Need I say more?",
+         before [;
+             Disrobe: "As you see no reason to run around the woods naked, you keep your clothes on.";
+         ],
+    has  clothing worn;
+
+Object Outside "Outside the cottage"
+    with   description
+           "You are outside a cottage in the middle of the countryside. After wandering around in the woods for hours and just stumbling upon the cottage, you are completely surprised that it's made out of bricks and normal stuff instead of gingerbread. You can go in the cottage, as well as around the back of the cottage to the east and west and back into the woods to the south.",
+    in_to  Inside,
+    n_to   Inside,
+    e_to   Behind,
+    w_to   Behind,
+    s_to   [; if (treasure notin player) "You can't feel motivated enough to wander back into the woods again"; else deadflag=2; score=score+1; "With your arms filled with treasure, you start to walk back into the woods. As you do so, you think about what life will be like back home. All your problems have now been solved."; ], 
+    has    light;
+
+Object Inside "Inside the cottage"
+    with   description
+           "You are inside the cottage. The cottage is quite a pleasant place. A huge wooden table takes up quite a bit of space in the centre of the cottage, while a chest sits discreetly underneath it. The only way that you can go is out.",
+    out_to Outside,
+    s_to   Outside,
+    has    light;
+
+Object -> chest "chest"
+    with  name "chest" "box",
+          description "It's a wooden chest with metal bits around the edges that resembles the sort of thing you'd expect to see in pirate movies. Something like that ought to have something valuable in it. All your financial troubles may be over at last.",
+          before [;
+              Take: "You reach around both sides of the chest and attempt to lift it. After a few moments, you manage to lift the chest about an inch or two, then collapse under the sheer weight of the chest.";
+              Push: "No matter which way you push it, the chest refuses to move an inch.";
+              PushDir: "No matter which way you push it, the chest refuses to move an inch.";
+          ],
+          with_key key,
+    has   container openable lockable locked scenery;
+
+Object -> -> treasure "heap of treasure"
+    with  name "treasure" "riches" "heap" "pile",
+          description "A huge heap of treasure with all sorts of gold and jewels in it. You name it, it's in there",
+          after [;
+             Take: if (self has moved) ; else score=score+1;
+          ];
+
+Object -> table "table"
+    with  name "table",
+    has   supporter scenery;
+
+Attribute eaten;
+
+Object -> -> cake "cake"
+    with  name "cake" "chocolate",
+          description "Mmm... Chocolate cake... It looks absolutely delicious...",
+          before [;
+             Insert: if (second==mouth) "What a waste of perfectly good cake!";
+          ],
+          after [;
+             Eat: score=score+1; give self eaten; "That really was delicious! You feel quite a bit braver for some reason";
+          ],
+    has   edible;
+
+Object -> -> mushroom "poisonous mushroom"
+    with  name "mushroom" "poisonous",
+          description "Beware! This mushroom is POISONOUS!",
+          before [;
+             Insert: if (second==mouth) { if (cake hasnt eaten) "You are too scared to go anywhere near the ogre's mouth. What if he eats you?";};
+          ],
+          after [;
+              Eat: deadflag=1; "You just won't listen, will you?";
+              Insert: if (second==mouth) { if (cake has eaten) { give ogre ~animate; give mouth ~open; give stool ~scenery; give ogre static; move key to Behind; score=score+1; "You put the mushroom in the ogre's mouth. The poison kicks in pretty quickly and after a few moments, the ogre collapses on the ground, dead. The key drops from his lap and hits the ground with a clang.";};};
+          ],
+    has   edible;
+
+Object Behind "Behind the cottage"
+    with   description
+           "Moving around the back of the cottage, the atmosphere immediatelely transforms from metaphorical gingerbread house to literal pit of despair. Despite still being outside, you are surrounded in near darkness. Mould of some sort grows around the walls of the house. You can get out of here fast by going east or west.",
+    w_to   Outside,
+    e_to   Outside,
+    has    light;
+
+Object -> stool "stool"
+    with  name "stool" "seat",
+    has   scenery;
+
+Object -> ogre "fearsome ogre"
+    with  name "ogre" "fearsome" "monster",
+          describe [; if (self has animate) "Sat on a stool and snoring loudly, you see a fearsome ogre."; "The ogre's huge corpse lies to one side"; ],
+          description [; if (self has animate) "You see nothing special about the fearsome ogre... oh who am I kidding? EVERYTHING is special about this ogre (and not in a good way). The ogre has dark-green/grey skin with a mouth full of yellow teeth and a key resting on his lap. You wonder what it could be for..."; "The ogre is dead. Not much more to be said now, is there?"; ],
+          life [; "The ogre snores ridiculously loudly."; ],
+          before [;
+              Kiss: "No way you're going to kiss that... thing! What are you thinking?!";
+              WakeOther: if (ogre has animate) { deadflag=1; "You make an attempt to wake the ogre. He opens his eyes slightly and sleepily tries to get rid of the disturbance (and succeeds). He then goes back to sleep.^^(You do realise how stupid that idea was?)";};
+          ],
+          react_before [;
+              Sing: if (ogre has animate) { deadflag=1; "Your singing is abominable, and the ogre apparently thinks so too. Uh oh...";};
+          ],
+          react_after [;
+              Take: if (ogre has animate) { if (noun==key) { deadflag=1; "Taken^^The ogre quickly notices the lack of the key and wakes up, only to see the key in your hands. Naturally he kills you."; };};
+          ],
+    has   animate transparent container open;
+
+Object -> -> mouth "ogre's mouth"
+    with  name "mouth" "ogre^s",
+          description "You'd rather not look too close at the ogre's mouth, to be honest",
+    has   container scenery open;
+
+Object -> -> key "gold key"
+    with  name "key" "gold",
+          description "A gold, shiny and rather important looking key.",
+          after [;
+             Take: if (self has moved) ; else score=score+1;
+          ];
+
+Include "Grammar";
