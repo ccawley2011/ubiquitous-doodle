@@ -1,0 +1,29 @@
+SYS "OS_GetEnv" TO Env$:char%=0:space%=0
+REPEAT
+   char%+=1
+   IF MID$(Env$,char%,1)=" " THEN space%+=1
+UNTIL space% = 3 OR char% = LEN(Env$)
+A$=RIGHT$(Env$,LEN(Env$)-char%):file%=0
+IF A$="" THEN A$="BBCFont"
+ON ERROR PROCerror
+FILE = OPENOUT A$:file%=1
+DIM block% 9
+FOR char%=32 TO 255 STEP 1
+   IF char%<>127 THEN
+      block%?0=char%
+      SYS "OS_Word",10,block%
+      BPUT#FILE, 23
+      FOR X%=0 TO 8 STEP 1
+         BPUT#FILE, block%?X%
+      NEXT
+   ENDIF
+NEXT
+CLOSE#FILE:file%=0
+SYS "OS_File",18,A$,&FF7
+END
+
+DEF PROCerror
+   ON ERROR OFF
+   IF file%=1 THEN CLOSE#FILE
+   ERROR ERR, REPORT$+" at line "+STR$(ERL)
+ENDPROC

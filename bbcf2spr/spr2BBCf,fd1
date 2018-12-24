@@ -1,0 +1,76 @@
+IF FNargs(1)="" THEN ERROR 0, "Syntax: *spr2BBCf <sprite file> [<BBC font file>]"
+infile$=FNargs(1)
+IF FNargs(2)<>"" THEN outfile$=FNargs(2) ELSE outfile$=FNargs(1)+"F"
+file%=0
+ON ERROR PROCerror
+SYS "OS_File",21,infile$ TO type%,,,,length%
+IF type%=0 THEN SYS "OS_File",19,infile$,0
+IF type%=2 THEN SYS "OS_File",19,infile$,2
+DIM name% 12
+DIM sprite% length%+4
+sprite%!0=length%+4
+sprite%!4=0
+sprite%!8=16
+sprite%!12=16
+SYS "OS_SpriteOp",&109,sprite%
+SYS "OS_SpriteOp",&10A,sprite%,infile$
+FILE = OPENOUT outfile$:file%=1
+FOR count%=1 TO sprite%!4 STEP 1
+   SYS "OS_SpriteOp",&10D,sprite%,name%,12,count% TO ,,,namelen%
+   name%!namelen%=&D
+   IF LEFT$($name%,1)<>"&" THEN PRINT "Sprite "+$name%+" must have a name starting with '&'":NEXT
+   char%=EVAL($name%)
+   IF char%<&20 THEN PRINT "Sprite "+$name%+" has a character code of less than &20":NEXT
+   SYS "OS_SpriteOp",&128,sprite%,$name% TO ,,,width%,height%,,mode%
+   IF width%<>8 OR height%<>8 THEN PRINT "Sprite "+$name%+" must have a size of 8x8":NEXT
+   IF mode%<>0 THEN PRINT "Sprite "+$name%+" must be in Mode 0.":NEXT
+   BPUT#FILE, 23
+   BPUT#FILE, char%
+   FOR Y% = 7 TO 0 STEP -1
+      val%=0
+      FOR X% = 0 TO 7 STEP 1
+         SYS "OS_SpriteOp",&129,sprite%,$name%,7-X%,Y% TO ,,,,,col%
+         val%=val%+(col%<<X%)
+      NEXT
+      BPUT#FILE,val%
+   NEXT
+NEXT
+CLOSE#FILE:file%=0
+SYS "OS_File",18,outfile$,&FF7
+END
+
+DEF PROCerror
+   ON ERROR OFF
+   IF file%=1 THEN CLOSE#FILE
+   ERROR ERR, REPORT$+" at line "+STR$(ERL)
+ENDPROC
+
+DEF FNargs(number%)
+   SYS "OS_GetEnv" TO Env$
+   char%=0
+   space%=0
+   REPEAT
+     char%+=1
+     IF MID$(Env$,char%,1)=" " THEN
+       space%+=1
+     ENDIF
+   UNTIL space% = 3 OR char% = LEN(Env$)
+   A$=RIGHT$(Env$,LEN(Env$)-char%)
+   IF number%=0 THEN
+      FINAL$=A$
+   ELSE
+      char%=0
+      space%=0
+      start%=-1
+      REPEAT
+         char%+=1
+         IF space%=number%-1 AND start%=-1 THEN
+            start%=char%
+         ENDIF
+         IF MID$(A$,char%,1)=" " THEN
+            space%+=1
+         ENDIF
+      UNTIL space% = number% OR char% > LEN(A$)
+      FINAL$=MID$(A$,start%,char%-start%)
+   ENDIF
+=FINAL$

@@ -1,0 +1,17 @@
+BBCf2spr
+~~~~~~~~
+BBCf2spr will convert a BBC font file into a sprite file. Syntax:
+
+*BBCf2spr <BBC font file> [<sprite file>]
+
+spr2BBCf will convert a sprite file into a BBC font file. Syntax:
+
+*spr2BBCf <sprite file> [<BBC font file>]
+
+Each sprite must be 8 pixels by 8 pixels in Mode 0, with a name starting with '&', followed by the character code.
+
+BBCfdump will create a BBC font file from the font loaded in memory. Syntax:
+
+*BBCfdump [<BBC font file>]
+
+By Cameron Cawley

@@ -1,0 +1,66 @@
+IF FNargs(1)="" THEN ERROR 0, "Syntax: *BBCf2spr <BBC font file> [<sprite file>]"
+infile$=FNargs(1)
+IF FNargs(2)<>"" THEN outfile$=FNargs(2) ELSE outfile$=FNargs(1)+"S"
+file%=0
+ON ERROR PROCerror
+SYS "OS_File",21,infile$ TO type%,,,,length%
+IF type%=0 THEN SYS "OS_File",19,infile$,0
+IF type%=2 THEN SYS "OS_File",19,infile$,2
+DIM sprite% 16+(76*(length%/10))
+sprite%!0=16+(76*(length%/10))
+sprite%!4=0
+sprite%!8=16
+sprite%!12=16
+SYS "OS_SpriteOp",9+256,sprite%
+FILE = OPENIN infile$:file%=1
+REPEAT
+   vdu23%=BGET#FILE
+   char%=BGET#FILE
+   name$="&"+RIGHT$("0"+STR$~(char%),2)
+   SYS "OS_SpriteOp",15+256,sprite%,name$,0,8,8,0
+   FOR Y% = 7 TO 0 STEP -1
+      val%=BGET#FILE
+      FOR X% = 0 TO 7 STEP 1
+         SYS "OS_SpriteOp",42+256,sprite%,name$,7-X%,Y%,(val%>>>X% AND 1),0
+      NEXT
+   NEXT
+UNTIL EOF#FILE
+CLOSE#FILE:file%=0
+SYS "OS_SpriteOp",12+256,sprite%,outfile$
+END
+
+DEF PROCerror
+   ON ERROR OFF
+   IF file%=1 THEN CLOSE#FILE
+   ERROR ERR, REPORT$+" at line "+STR$(ERL)
+ENDPROC
+
+DEF FNargs(number%)
+   SYS "OS_GetEnv" TO Env$
+   char%=0
+   space%=0
+   REPEAT
+     char%+=1
+     IF MID$(Env$,char%,1)=" " THEN
+       space%+=1
+     ENDIF
+   UNTIL space% = 3 OR char% = LEN(Env$)
+   A$=RIGHT$(Env$,LEN(Env$)-char%)
+   IF number%=0 THEN
+      FINAL$=A$
+   ELSE
+      char%=0
+      space%=0
+      start%=-1
+      REPEAT
+         char%+=1
+         IF space%=number%-1 AND start%=-1 THEN
+            start%=char%
+         ENDIF
+         IF MID$(A$,char%,1)=" " THEN
+            space%+=1
+         ENDIF
+      UNTIL space% = number% OR char% > LEN(A$)
+      FINAL$=MID$(A$,start%,char%-start%)
+   ENDIF
+=FINAL$
