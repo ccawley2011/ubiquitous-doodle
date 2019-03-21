@@ -1,0 +1,5 @@
+Set Drascula$Path <Obey$Dir>.
+
+If "<ScummVM$Dir>"="" Then Error ScummVM has not been seen by the filer.
+
+Run <ScummVM$Dir> -p /Drascula: drascula
