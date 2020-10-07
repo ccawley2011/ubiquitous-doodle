@@ -1,0 +1,17 @@
+# gsp_run.dat unpacker
+# By Cameron Cawley
+
+get ARCHIVE_SIZE asize
+math ARCHIVE_SIZE += 1
+math OFFSET = 0
+
+do
+   goto OFFSET
+   get NAME_LENGTH long
+   getdstring NAME NAME_LENGTH
+   get SIZE long
+   math OFFSET += 8
+   math OFFSET += NAME_LENGTH
+   log NAME OFFSET SIZE
+   math OFFSET += SIZE
+while OFFSET < ARCHIVE_SIZE

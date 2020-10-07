@@ -1,0 +1,38 @@
+# 4Mation archive unpacker
+# By Cameron Cawley
+
+IDString "BIIK-DJC"
+get ARCHIVE_SIZE asize
+goto 20
+get FILEINDEX long
+goto FILEINDEX
+get TEMP long
+get INDEXSIZE long
+get HEADERSIZE long
+getct INDEXNAME string 0
+padding 4
+math FILEINDEX += HEADERSIZE
+do
+   get ENTRYSIZE long
+   get OFFSET long
+   getct NAME string 0
+   padding 4
+   math FILEINDEX += ENTRYSIZE
+   goto OFFSET
+   get TYPE long
+   get SIZE long
+   get HEADSIZE long
+   math SIZE -= HEADSIZE
+   math OFFSET += HEADSIZE
+   getct NAME string 0
+   padding 4
+   if TYPE == 11
+      string NAME += ",aff"
+   elif TYPE == 2
+      string NAME += ",cb6"
+   else
+      string NAME += ",ffd")
+   endif
+   log NAME OFFSET SIZE
+   goto FILEINDEX
+while FILEINDEX < ARCHIVE_SIZE

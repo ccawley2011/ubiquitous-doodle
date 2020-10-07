@@ -1,0 +1,24 @@
+# Sonic Adventure DX .dat unpacker
+# By Cameron Cawley
+# Based on information from https://info.sonicretro.org/SCHG:Sonic_Adventure_DX:_PC/Sound_Editing/Sound_Effects#Format
+
+getdstring IDSTR 16
+set ID04 binary "archive  V2.2\0\0\0"
+set ID10 binary = "archive  V2.DMZ\0"
+if IDSTR == ID04
+elif IDSTR == ID10
+else
+   cleanexit
+endif
+get COUNT long
+set POSITION long 20
+for i = 0 < COUNT
+   get NAMEPTR long
+   get OFFSET long
+   get SIZE long
+   savepos POSITION
+   goto NAMEPTR
+   getct NAME string 0
+   goto POSITION
+   log NAME OFFSET SIZE
+next i

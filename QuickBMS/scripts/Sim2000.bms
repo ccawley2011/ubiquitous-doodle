@@ -1,0 +1,20 @@
+# Sim City 2000 SC2000.DAT unpacker
+# By Cameron Cawley
+
+getdstring NAME 12
+get OFFSET long
+math COUNT = OFFSET
+math COUNT /= 16
+
+for i = 1 <= COUNT
+   getdstring NEXTNAME 12
+   get NEXTOFFSET long
+   if i = COUNT
+      get NEXTOFFSET asize
+   endif
+   math SIZE = NEXTOFFSET
+   math SIZE -= OFFSET
+   log NAME OFFSET SIZE
+   set NAME = NEXTNAME
+   set OFFSET = NEXTOFFSET
+next i

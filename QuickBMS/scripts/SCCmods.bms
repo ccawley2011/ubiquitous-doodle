@@ -1,0 +1,43 @@
+# Sonic Classic Collection .mods unpacker
+# By Cameron Cawley
+
+get COUNT long
+set POSITION long 4
+for i = 0 < COUNT
+   get FIRSTPTR long
+   math POSITION += 4
+   get NEXTPTR long
+   if FIRSTPTR != NEXTPTR
+      set MEMORY_FILE binary "\x53\x57\x41\x56\xff\xfe\x00\x01\x00\x00\x00\x00\x10\x00\x01\x00\x44\x41\x54\x41\x00\x00\x00\x00\x02\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+      goto FIRSTPTR
+      get SIZE long
+      math SIZE -= 16
+      get LOOP long
+      get SAMPLERATE short
+      get TEMP1 long
+      get TEMP2 short
+      string NAME = "Track"
+      string NAME + i
+      string NAME + ".swav"
+      savepos OFFSET
+
+      set SIZEMINUSLOOP SIZE
+      math SIZEMINUSLOOP -= LOOP
+      set DATASIZE SIZE
+      math DATASIZE += 16
+      set FILESIZE SIZE
+      math FILESIZE += 16
+
+      putvarchr MEMORY_FILE 8 FILESIZE long
+      putvarchr MEMORY_FILE 20 DATASIZE long
+      putvarchr MEMORY_FILE 26 SAMPLERATE short
+      putvarchr MEMORY_FILE 28 SIZE short
+      putvarchr MEMORY_FILE 30 LOOP short
+      putvarchr MEMORY_FILE 32 SIZEMINUSLOOP long
+      log NAME 0 36 MEMORY_FILE
+      append
+      log NAME OFFSET SIZE
+      append
+   endif
+   goto POSITION
+next i

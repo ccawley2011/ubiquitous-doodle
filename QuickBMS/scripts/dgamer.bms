@@ -1,0 +1,38 @@
+# DGamer .fun unpacker
+# By Cameron Cawley
+
+get NAMES long
+math NAMES += 24
+get NAMESLEN long
+get POINTERS long
+get POINTERSLEN long
+
+do
+   goto NAMES
+   get NAME_LENGTH byte
+   math NAMES += 1
+   math FOLDER = NAME_LENGTH
+   math FOLDER >> 7
+   if NAME_LENGTH == 0
+      cleanexit
+   elif FOLDER == 1
+      math NAME_LENGTH & 127
+      getdstring FOLDER_NAME NAME_LENGTH
+      math NAMES += NAME_LENGTH
+      math NAMES += 3
+   else
+      getdstring FILE_NAME NAME_LENGTH
+      math NAMES += NAME_LENGTH
+
+      goto POINTERS
+      get START_OFFSET long
+      get END_OFFSET long
+      math END_OFFSET -= START_OFFSET
+      math POINTERS += 8
+
+      string NAME = FOLDER_NAME
+      string NAME += /
+      string NAME += FILE_NAME
+      log NAME START_OFFSET END_OFFSET
+   endif
+while NAME_LENGTH > 0

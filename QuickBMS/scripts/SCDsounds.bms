@@ -1,0 +1,27 @@
+# Sonic CD (PC 1996) pcm8.cmp unpacker
+# By Cameron Cawley
+# Based on information from https://info.sonicretro.org/SCHG:Sonic_CD_(PC)#Sound_Effects
+
+IDString "OTHE"
+get EOF long
+get COUNT long
+get OFFSET long
+
+for i = 0 < COUNT
+   get SIZE long
+   set MEMORY_FILE binary "\x52\x49\x46\x46\x00\x00\x00\x00\x57\x41\x56\x45\x66\x6D\x74\x20\x10\x00\x00\x00\x01\x00\x01\x00\x11\x2B\x00\x00\x11\x2B\x00\x00\x01\x00\x08\x00\x64\x61\x74\x61\x00\x00\x00\x00"
+   string NAME = "Sound"
+   string NAME + i
+   string NAME + ".wav"
+
+   set FILESIZE SIZE
+   math FILESIZE += 40
+   putvarchr MEMORY_FILE 4 FILESIZE long
+   putvarchr MEMORY_FILE 40 SIZE long
+
+   log NAME 0 44 MEMORY_FILE
+   append
+   log NAME OFFSET SIZE
+   append
+   math OFFSET += SIZE
+next i
