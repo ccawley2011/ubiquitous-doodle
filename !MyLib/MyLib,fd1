@@ -1,0 +1,199 @@
+REM My Library
+
+PROCmessage("MyLib","Read the !Help file for more information")
+END
+
+DEF PROCmessage(title$,message$)
+   SYS "Wimp_ReportError",STRING$(4,CHR$0)+message$+CHR$0,17,title$
+ENDPROC
+
+DEF PROCerror
+   ON ERROR OFF
+   ERROR 0, REPORT$+" at line "+STR$(ERL)
+ENDPROC
+
+DEF PROCargs(args%,size%,syntax$)
+   LOCAL X%,env$
+   SYS "OS_GetEnv" TO env$
+   env$=env$+" "
+   FOR X%=1 TO 3 STEP 1
+      env$=MID$(env$,INSTR(env$," ")+1)
+   NEXT
+   SYS "OS_ReadArgs",syntax$,env$,args%,size%
+ENDPROC
+
+DEF FNlowercase(string$)
+   LOCAL ascii%,lowercase$,A%
+   ascii%=0:lowercase$=""
+   FOR A% = 1 TO LEN(string$)
+      ascii%=ASC(MID$(string$,A,1))
+      IF ascii% > 64 AND ascii% < 91 THEN
+        ascii%=ascii%+32
+      ENDIF
+      lowercase$=lowercase$+CHR$(ascii%)
+   NEXT
+=lowercase$
+
+DEF FNreverse(string$)
+   LOCAL reverse$
+   char%=LEN(string$)
+   REPEAT
+      reverse$=reverse$+MID$(string$,char%,1)
+      char%=char%-1
+   UNTIL char%=0
+=reverse$
+
+DEF FNtrimspaces(text$)
+    LOCAL temp%,left%,text$
+    temp%=0
+    REPEAT
+       temp%=temp%+1
+    UNTIL ASC(MID$(text$,temp%,1))<>32 AND ASC(MID$(text$,temp%,1))<>160 AND ASC(MID$(text$,temp%,1))<>9
+    left%=temp%
+    temp%=LEN(text$)+1
+    REPEAT
+       temp%=temp%-1
+       PRINT temp%
+    UNTIL ASC(MID$(text$,temp%,1))<>32 AND ASC(MID$(text$,temp%,1))<>160 AND ASC(MID$(text$,temp%,1))<>9
+=MID$(text$,left%,(temp%+1)-left%)
+
+DEF FNbinary(number%,length%)
+   LOCAL A$
+   REPEAT
+      A$=STR$(number% AND 1)+A$
+      number%=number% >>> 1
+   UNTIL number%=0
+   IF length%>0 AND LEN(A$)<>length% THEN
+      IF LEN(A$)<length% THEN
+         A$=STRING$(length%-LEN(A$),"0")+A$
+      ELSE
+         A$=RIGHT$(A$,length%)
+      ENDIF
+   ENDIF
+=A$
+
+DEF FNterm(a%)
+   LOCAL str$
+   WHILE ?a%>31
+      str$+=CHR$?a%
+      a%+=1
+   ENDWHILE
+=str$
+
+DEF PROCwriteterm(a%,text$)
+   $a%=text$
+   a%?(LEN(text$))=0
+ENDPROC
+
+DEF FNreadsysvar(variable$)
+   DIM var% 1024
+   SYS "XOS_ReadVarVal",variable$,var%,1024,0 TO ,,A%
+   var%?A%=13
+=$var%
+
+DEF FNreadchars(chars%,handle%)
+   LOCAL N$,X%
+   N$=""
+   FOR X%=1 TO chars% STEP 1
+      N$=N$+CHR$(BGET#handle%)
+   NEXT
+=N$
+
+DEF FNreadcharsuntil(char%,handle%)
+   LOCAL N$,A%
+   N$=""
+   REPEAT
+      A%=BGET#handle%
+      IF A%<>char% THEN N$=N$+CHR$(A%)
+   UNTIL A%=char%
+=N$
+
+DEF FNreadbigendian(bytes%,handle%)
+   LOCAL Z%,N%
+   Z%=0
+   FOR N%=1 TO bytes% STEP 1
+      Z%=(Z%<<8)+BGET#handle%
+   NEXT
+=Z%
+
+DEF FNreadlitendian(bytes%,handle%)
+   LOCAL Z%,N%
+   Z%=0
+   FOR N%=0 TO bytes%-1 STEP 1
+      Z%=Z%+(BGET#handle%<<(N%*8))
+   NEXT
+=Z%
+
+DEF PROCwritelitendian(write%,bytes%,handle%)
+   LOCAL N%
+   FOR N%=0 TO (bytes%*8)-1 STEP 8
+      BPUT#handle%, (write%>>N%) AND &FF
+   NEXT
+ENDPROC
+
+DEF PROCwritebigendian(write%,bytes%,handle%)
+   LOCAL N%
+   FOR N%=(bytes%*8)-8 TO 0 STEP -8
+      BPUT#handle%, (write%>>N%) AND &FF
+   NEXT
+ENDPROC
+
+DEF PROCcopyfiletofile(in%,out%,size%)
+   LOCAL handle%,start%
+   SYS "Buffer_Create",0,size%+1,-1 TO handle%
+   SYS "Buffer_GetInfo",handle% TO ,start%
+
+   SYS "OS_GBPB",4,in%,start%,size%
+   SYS "OS_GBPB",2,out%,start%,size%
+
+   SYS "Buffer_Remove",handle%
+ENDPROC
+
+DEF PROCdumpfile(fhand%,offset%,size%,fname$,ftype%)
+   PTR#fhand%=offset%
+   OUTFILE = OPENOUT fname$
+   PROCcopyfiletofile(fhand%,OUTFILE,size%)
+   CLOSE#OUTFILE
+   SYS "OS_File",18,fname$,ftype%
+ENDPROC
+
+DEF FNloadvocfile(filename$)
+   LOCAL fhand%,id$,hdrsize%,version%,check%
+   fhand% = OPENIN filename$
+   id$=FNreadcharsuntil(&1A,fhand%)
+   IF id$<>"Creative Voice File" THEN CLOSE#fhand%:=-1
+
+   hdrsize%=FNreadlitendian(2,fhand%)
+   version%=FNreadlitendian(2,fhand%)
+   check%=FNreadlitendian(2,fhand%)
+   IF check%<>(NOT version% + &1234) THEN CLOSE#fhand%:=-1
+   PTR#fhand%=hdrsize%
+
+   PRINT id$;" version &";~version%
+=fhand%
+
+DEF FNparsevoc(fhand%,RETURN next%,RETURN type%,RETURN size%)
+   PTR#fhand%=next%
+   IF EOF#fhand% THEN
+      type%=0
+      =FALSE
+   ENDIF
+
+   type%=BGET#fhand%
+   IF type%=0 OR type%>9 THEN
+     next%=next%+1
+     =FALSE
+   ENDIF
+
+   size%=FNreadlitendian(3,fhand%)
+   next%=PTR#fhand%+size%
+=TRUE
+
+DEF FNfindvocblock(fhand%,RETURN next%,wanted%,RETURN size%)
+   LOCAL found%,type%
+   REPEAT
+      found%=FNparsevoc(FILE,next%,type%,size%)
+      IF type%=wanted% THEN =TRUE
+   UNTIL NOT found%
+=FALSE
+
