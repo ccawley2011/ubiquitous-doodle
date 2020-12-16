@@ -157,6 +157,12 @@ DEF PROCdumpfile(fhand%,offset%,size%,fname$,ftype%)
    SYS "OS_File",18,fname$,ftype%
 ENDPROC
 
+DEF PROCplayit_init
+   LOCAL PlayIt_Version%,X%
+   SYS "XOS_SWINumberFromString",,"PlayIt_Version" TO PlayIt_Version%;X%
+   IF X% AND 1 THEN OSCLI "RMLoad PlayIt:PlayIt PlayIt:"
+ENDPROC
+
 DEF FNloadvocfile(filename$)
    LOCAL fhand%,id$,hdrsize%,version%,check%
    fhand% = OPENIN filename$
@@ -168,8 +174,6 @@ DEF FNloadvocfile(filename$)
    check%=FNreadlitendian(2,fhand%)
    IF check%<>(NOT version% + &1234) THEN CLOSE#fhand%:=-1
    PTR#fhand%=hdrsize%
-
-   PRINT id$;" version &";~version%
 =fhand%
 
 DEF FNparsevoc(fhand%,RETURN next%,RETURN type%,RETURN size%)
@@ -197,3 +201,32 @@ DEF FNfindvocblock(fhand%,RETURN next%,wanted%,RETURN size%)
    UNTIL NOT found%
 =FALSE
 
+DEF FNcreatesimplewavefile(filename$,datasize%,channels%,samplesPerSec%,bitsPerSample%)
+   LOCAL fhand%
+   fhand% = OPENOUT filename$
+   SYS "OS_File",18,filename$,&FB1
+
+   BPUT#fhand%, "RIFF";
+   PROCwritelitendian(32+datasize%,4,fhand%)
+   BPUT#fhand%, "WAVE";
+
+   BPUT#fhand%, "fmt ";
+   PROCwritelitendian(16,4,fhand%)
+   PROCwritelitendian(1,2,fhand%)
+   PROCwritelitendian(channels%,2,fhand%)
+   PROCwritelitendian(samplesPerSec%,4,fhand%)
+   PROCwritelitendian(samplesPerSec% * channels% * (bitsPerSample%/8),4,fhand%)
+   PROCwritelitendian(channels% * (bitsPerSample%/8),2,fhand%)
+   PROCwritelitendian(bitsPerSample%,2,fhand%)
+
+   BPUT#fhand%, "data";
+   PROCwritelitendian(datasize%,4,fhand%)
+=fhand%
+
+DEF PROCfinalisewavefile(fhand%,datasize%)
+   PTR#fhand%=4
+   PROCwritelitendian(32+datasize%,4,fhand%)
+   PTR#fhand%=28
+   PROCwritelitendian(datasize%,4,fhand%)
+   CLOSE#fhand%
+ENDPROC

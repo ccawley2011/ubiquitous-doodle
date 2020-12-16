@@ -1,0 +1,92 @@
+REM The MUS format is used in the DOS game "Lost Eden" by Cryo Interactive. It
+REM is for the most part a standard Creative Voice file with a custom text block
+REM used for defining custom loop points within the main sound data block.
+REM
+REM Based on the playback code in ScummVM.
+
+LIBRARY "MyLib:MyLib"
+ON ERROR PROCerror
+
+DIM args% 1024
+PROCargs(args%,1024,"infile/A,outfile")
+IF args%!0<>0 THEN infile$=FNterm(args%!0) ELSE infile$=""
+IF args%!4<>0 THEN outfile$=FNterm(args%!4) ELSE outfile$=""
+
+FILE = FNloadvocfile(infile$)
+IF FILE<0 THEN
+   ERROR 0, "This is not a valid Creative Voice file"
+ENDIF
+
+next%=PTR#FILE
+IF NOT FNfindvocblock(FILE,next%,5,infoSize%) THEN
+   CLOSE#FILE
+   ERROR 0, "No text block found in Creative Voice file"
+ENDIF
+
+seqSize%=FNreadlitendian(2,FILE)
+DIM sequences%(seqSize%)
+FOR X%=0 TO seqSize%-3 STEP 1
+   sequences%(X%)=BGET#FILE
+NEXT
+
+patSize%=infoSize%-seqSize%
+DIM offsets%(patSize%/6)
+DIM lengths%(patSize%/6)
+FOR X%=0 TO (patSize%/6)-1 STEP 1
+   offsets%(X%)=FNreadlitendian(3,FILE)
+   lengths%(X%)=FNreadlitendian(3,FILE)
+NEXT
+
+IF outfile$<>"" THEN
+   IF NOT FNfindvocblock(FILE,next%,1,soundSize%) THEN
+      CLOSE#FILE
+      ERROR 0, "No sound data block found in Creative Voice file"
+   ENDIF
+   freqDiv%=BGET#FILE
+   codec%=BGET#FILE
+   soundPtr%=PTR#FILE
+
+   OUTFILE = FNcreatesimplewavefile(outfile$,0,1,1000000/(256 - freqDiv%),8)
+   pos%=0
+   size%=0
+   REPEAT
+      seq%=sequences%(pos%)
+      IF seq%<>&FF THEN
+         ofs%=offsets%(seq%)
+         len%=lengths%(seq%)
+         PTR#FILE=soundPtr%+ofs%
+         size%=size%+len%
+         PROCcopyfiletofile(FILE,OUTFILE,len%)
+         pos%=pos%+1
+      ENDIF
+   UNTIL pos%>=seqSize% OR seq%=&FF
+   PROCfinalisewavefile(OUTFILE,size%)
+   CLOSE#FILE
+ELSE
+   CLOSE#FILE
+
+   PROCplayit_init
+
+   PRINT "  Position  Sequence    Offset    Length"
+   pos%=0
+   REPEAT
+      seq%=sequences%(pos%)
+      IF seq%=&FF THEN
+         PRINT "Rewind"
+         pos%=0
+         seq%=sequences%(pos%)
+      ENDIF
+      ofs%=offsets%(seq%)
+      len%=lengths%(seq%)
+      PRINT pos%, seq%, ~ofs%, len%
+
+      SYS "PlayIt_Open",infile$
+      SYS "PlayIt_BeginEnd",ofs%,ofs%+len%
+      SYS "PlayIt_Play"
+      REPEAT
+         SYS "PlayIt_Status" TO flags%
+      UNTIL (flags% AND 1) = 0
+      pos%=pos%+1
+   UNTIL FALSE
+ENDIF
+END
