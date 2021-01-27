@@ -1,0 +1,67 @@
+# Sonic Classic Collection screensGame_eu.dat unpacker
+# By Cameron Cawley
+
+# TODO: Support the other languages
+
+set MEMORY_FILE binary "BM\x42\x80\x01\x00\x00\x00\x00\x00\x42\x00\x00\x00\x28\x00\x00\x00\x00\x01\x00\x00\x40\xFF\xFF\xFF\x01\x00\x10\x00\x03\x00\x00\x00\x00\x80\x01\x00\x13\x0B\x00\x00\x13\x0B\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x1F\x00\x00\x00\xE0\x03\x00\x00\x00\x7C\x00\x00"
+comtype lz77wii
+
+get LAYOUTCOUNT long
+get LAYOUTOFFSET long
+math LAYOUTOFFSET -= 0x25DF000
+get NAMESCOUNT long
+get NAMESOFFSET long
+math NAMESOFFSET -=  0x23D1000
+get LZNAMESCOUNT long
+get LZNAMESOFFSET long
+math LZNAMESOFFSET -= 0x23D1000
+get LZCOUNT long
+get LZOFFSET long
+math LZOFFSET -= 0x23D1000
+
+for i = 0 < NAMESCOUNT
+   goto NAMESOFFSET
+   get OFFSET long
+   math OFFSET -= 0x23D1000
+   goto OFFSET
+
+   get NAME string
+   string NAME + ".bmp"
+
+   goto LAYOUTOFFSET
+
+   log NAME 0 66 MEMORY_FILE
+   append
+   for y = 0 < 192
+      get OFFSET long
+      math OFFSET -= 0x25DF000
+      log NAME OFFSET 512
+   next y
+   append
+
+   math NAMESOFFSET += 4
+   math LAYOUTOFFSET += 768
+next i
+
+for i = 0 < LZNAMESCOUNT
+   goto LZNAMESOFFSET
+   get OFFSET long
+   math OFFSET -= 0x23D1000
+   goto OFFSET
+
+   get NAME string
+   string NAME + ".bmp"
+
+   goto LZOFFSET
+   get SIZE long
+   get OFFSET long
+   math OFFSET -= 0x25DF000
+
+   log NAME 0 66 MEMORY_FILE
+   append
+   clog NAME OFFSET SIZE SIZE
+   append
+
+   math LZNAMESOFFSET += 4
+   math LZOFFSET += 8
+next i
