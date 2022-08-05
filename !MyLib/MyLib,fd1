@@ -44,18 +44,29 @@ DEF FNreverse(string$)
 =reverse$
 
 DEF FNtrimspaces(text$)
-    LOCAL temp%,left%,text$
-    temp%=0
-    REPEAT
-       temp%=temp%+1
-    UNTIL ASC(MID$(text$,temp%,1))<>32 AND ASC(MID$(text$,temp%,1))<>160 AND ASC(MID$(text$,temp%,1))<>9
-    left%=temp%
-    temp%=LEN(text$)+1
-    REPEAT
-       temp%=temp%-1
-       PRINT temp%
-    UNTIL ASC(MID$(text$,temp%,1))<>32 AND ASC(MID$(text$,temp%,1))<>160 AND ASC(MID$(text$,temp%,1))<>9
-=MID$(text$,left%,(temp%+1)-left%)
+=FNtrimspacesright(FNtrimspacesleft(text$))
+
+DEF FNtrimspacesleft(text$)
+   LOCAL X%, char%
+   IF text$="" THEN =""
+   FOR X%=1 TO LEN(text$) STEP 1
+       char%=ASC(MID$(text$,X%,1))
+       IF char%<>32 AND char%<>160 AND char%<>9 THEN
+          =MID$(text$,X%)
+       ENDIF
+   NEXT
+=""
+
+DEF FNtrimspacesright(text$)
+   LOCAL X%, char%
+   IF text$="" THEN =""
+   FOR X%=LEN(text$) TO 1 STEP -1
+       char%=ASC(MID$(text$,X%,1))
+       IF char%<>32 AND char%<>160 AND char%<>9 THEN
+          =LEFT$(text$,X%)
+       ENDIF
+   NEXT
+=""
 
 DEF FNbinary(number%,length%)
    LOCAL A$
